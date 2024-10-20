@@ -143,6 +143,7 @@
           <!-- submitBTN -->
           <v-btn
               class="me-4 submit-button"
+              :loading="isActivityCreating"
               @click="submit"
           >
             create an activity
@@ -173,13 +174,13 @@ import { getStorage, ref as storageRef, uploadBytes } from "firebase/storage";
 import {useDateListStore} from "~/stores/datesList";
 
 // firebase
-const { $firestore } = useNuxtApp();
-const storage = getStorage();
-const userUidCookie = useCookie('userUidCookie');
-const userUid = userUidCookie.value;
+const { $firestore } = useNuxtApp()
+const storage = getStorage()
+const userUidCookie = useCookie('userUidCookie')
+const userUid = userUidCookie.value
 
 // activity was added
-const ifActivityWasAdded = ref(false);
+const ifActivityWasAdded = ref(false)
 
 // map configuration
 const mapZoom = ref(6);
@@ -198,15 +199,16 @@ const artCategories = computed(() => {
 })
 
 // activity cities
-const citiesDataJSON = await getCitiesData();
+const citiesDataJSON = await getCitiesData()
 
 // citiesDataArray to autocomplete
 const citiesDataArray = computed(() =>{
-  return citiesDataJSON.map(city => city.name + ', ' + city.admin_name);
+  return citiesDataJSON.map(city => city.name + ', ' + city.admin_name)
 });
 
 // datePicker variables
 const dateListStore = useDateListStore();
+dateListStore.datesList.length = 0
 const datesList = dateListStore.datesList;
 const dateListStartEndArray = reactive([]);
 
@@ -214,13 +216,16 @@ const dateListStartEndArray = reactive([]);
 const activityMainPhotoFile = ref();
 const activityAdditionalPhotoesFiles = ref([]);
 
+const isActivityCreating = ref(false);
+
 // validation rules
-const { handleSubmit } = useForm({
+const {handleSubmit, handleReset} = useForm({
   validationSchema: {
     name (value) {
-      if (value?.length >= 3 && value?.length <= 50) return true
+      if (value?.length <= 2) return 'Name needs to be at least 3 characters.'
+      if (value?.length > 50) return 'Enter max 50 characters.'
 
-      return 'Name needs to be at least 3 characters.'
+      return true
     },
     dates(){
       if (datesList.length > 0) return true
@@ -237,11 +242,11 @@ const { handleSubmit } = useForm({
 
       return 'Select a city please'
     },
-    // street and number
     description (value) {
-      if (value?.length > 2 && value?.length < 1500) return true
+      if (value?.length <= 2)  return 'Description must have at least 3 characters'
+      if (value?.length > 1500)  return 'Description must have max 1500 characters'
 
-      return 'Description must be more than 2 and less than 1500 characters'
+      return true
     },
     mainPhoto (value) {
       if (value) return true
@@ -275,8 +280,9 @@ const activityAdditionalPhotos = useField('additionalPhotos');
 const activityStreet = useField('street');
 const activityHouseNumber = useField('houseNumber');
 
-const submit = handleSubmit(async (values) =>{
-  await addActivity();
+const submit = handleSubmit(async () => {
+  isActivityCreating.value = true
+  await addActivity()
 });
 
 async function addActivity() {
@@ -308,6 +314,7 @@ async function addActivity() {
     additionalPhotosRefs: arrayOfAdditionalPhotosRefs,
   });
 
+  isActivityCreating.value = false
   ifActivityWasAdded.value = true;
 }
 
@@ -354,15 +361,17 @@ function processDateList() {
   return true;
 }
 
-async function addMainActivityPhoto(uniqueKey){
+// todo: add to storage
+async function addMainActivityPhoto(uniqueKey) {
   // Create a reference to 'images/activityPhoto ...'
   const url =  'images/' + 'activityPhoto' + activityName.value.value.trim() + uniqueKey.toString();
   const activityPhotoRef = storageRef(storage, url);
   await uploadBytes(activityPhotoRef, activityMainPhotoFile.value);
 
-  return url;
+  return url
 }
 
+// todo: add to storage
 async function addAdditionalActivityPhotos(uniqueKey){
   let urlsArray = [];
 
@@ -377,6 +386,7 @@ async function addAdditionalActivityPhotos(uniqueKey){
   return urlsArray;
 }
 
+// todo: add to storage
 async function getCitiesData(){
   // отримую дані від сервера
   const { data } = await useFetch('/api/citiesList');
@@ -384,6 +394,7 @@ async function getCitiesData(){
   return data.value.sortedCitiesListData;
 }
 
+// todo: add to storage
 async function getArtCategoriesList(){
   // отримую дані від сервера
   const { data } = await useFetch('/api/artCategoriesList');
@@ -391,6 +402,7 @@ async function getArtCategoriesList(){
   return data.value.artCategoriesList;
 }
 
+// todo: add to storage
 function getActivityCityData(){
   const cityData = activityCity.value.value;
   const parts = cityData.split(", ");
@@ -414,10 +426,11 @@ function setAdditionalActivityImage(event){
 }
 
 function scrollToTop() {
-  document.documentElement.scrollTop = 0; // For modern browsers
-  document.body.scrollTop = 0; // For older browsers
+  document.documentElement.scrollTop = 0 // For modern browsers
+  document.body.scrollTop = 0 // For older browsers
 }
 
+// todo: add to storage
 async function showCityOnMap(){
   try {
     const cityData = activityCity.value.value;
@@ -443,6 +456,7 @@ async function showCityOnMap(){
   }
 }
 
+// todo: add to storage
 async function showCityAndStreetOnMap(){
   if(activityCity.value.value !== undefined && activityCity.value.value !== ''){
     try {
@@ -487,6 +501,7 @@ async function showCityAndStreetOnMap(){
   }
 }
 
+// todo: add to storage
 async function showCityAndStreetAndHouseOnMap(){
   if(activityCity.value.value !== undefined && activityCity.value.value !== '' && activityStreet.value.value !== undefined && activityStreet.value.value !== ''){
     try {
@@ -531,6 +546,7 @@ async function showCityAndStreetAndHouseOnMap(){
   }
 }
 
+// todo: add to storage
 async function updateDataAfterMarkerDragged(lat, lon){
   try {
     const response  = await fetch(`https://geocode.maps.co/reverse?lat=${lat}&lon=${lon}&api_key=659450539ff1f762862410sea796255`);
@@ -542,19 +558,21 @@ async function updateDataAfterMarkerDragged(lat, lon){
   }
 }
 
+// todo: add to storage
 const updateMarkerLatLng = async (event) => {
   const updatedMarkerCoordinates = event.target.getLatLng();
   markerLat.value = updatedMarkerCoordinates.lat;
   markerLng.value = updatedMarkerCoordinates.lng;
   await updateDataAfterMarkerDragged(updatedMarkerCoordinates.lat, updatedMarkerCoordinates.lng);
-};
+}
+
+// todo: make handle form reset
 </script>
 
 <style scoped>
 /* form-container ------------------------------------------------------*/
 .form-container{
   margin: 24px auto 40px auto;
-  min-height: 100vh;
   padding: 0 15px;
 }
 
@@ -593,7 +611,7 @@ const updateMarkerLatLng = async (event) => {
     width: 900px;
     background-color: white;
     border-radius: 15px;
-    padding: 15px 15px 15px 15px;
+    padding: 15px 15px 25px 15px;
 
 
     /* shadow */

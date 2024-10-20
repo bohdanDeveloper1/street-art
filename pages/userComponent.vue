@@ -1,16 +1,16 @@
 <template>
   <div>
-    <!-- not auth user component  -->
-    <div class="not-auth-user-info" v-if="!userRoleCookie">
+    <div class="not-auth-user-info" v-if="!authStore.isLoggedIn">
       <auth-firebase-auth-component></auth-firebase-auth-component>
     </div>
-    <!-- auth user component  -->
-    <div v-if="userRoleCookie">
+    <div v-else>
     <auth-signed-in-user-component></auth-signed-in-user-component>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-const userRoleCookie = useCookie('userRoleCookie');
+import {useAuthStore} from '~/stores/authStore/useAuthStore'
+
+const authStore = useAuthStore()
 </script>

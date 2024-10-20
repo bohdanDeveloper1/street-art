@@ -1,24 +1,12 @@
 <script setup lang="ts">
-import { collection, query, where, getDocs } from "firebase/firestore";
-
-interface IActivityData{
-  id: string,
-  mainPhotoRef: string,
-  name: string,
-  cityAdmin: string,
-  cityName: string,
-  streetName:string,
-  houseNumber:  string,
-  category: string,
-  activityDates: {start: number, end: number}[],
-  activityEnd: number
-}
+import { collection, query, where, getDocs } from "firebase/firestore"
+import type {IActivityData} from '~/types/IActivityData'
 
 const props = defineProps<{
   cityName?: string
   activityId?: string
-}>();
-const { $firestore } = useNuxtApp();
+}>()
+const {$firestore}: any = useNuxtApp();
 const activitiesData = reactive<IActivityData[]>([]);
 
 async function getActivities(): Promise<void>{
@@ -48,7 +36,6 @@ async function getActivities(): Promise<void>{
       houseNumber:  doc.data().houseNumber,
       category: doc.data().category,
       activityDates: doc.data().activityDates,
-      activityEnd: doc.data().activityEnd
     };
     activitiesData.push(activity);
   });
@@ -61,10 +48,10 @@ onBeforeMount(async () => {
 
 <template>
   <div class="_container">
-    <h2 class="other-activities-title" v-if="props.cityName !== '' && activitiesData.length > 0">Other activities in {{props.cityName}}</h2>
+    <h2 class="other-activities-title" v-if="props.cityName && activitiesData.length > 0">Other activities in {{props.cityName}}</h2>
     <div class="cards-container" v-if="activitiesData.length > 0">
       <activity-component  v-for="activity in activitiesData" :key="activity.id"
-          :activityId="activity.id"
+          :id="activity.id"
           :mainPhotoRef="activity.mainPhotoRef"
           :name="activity.name"
           :cityAdmin="activity.cityAdmin"
@@ -90,9 +77,11 @@ onBeforeMount(async () => {
 }
 
 .cards-container{
-  margin-top: 25px;
-  display: flex;
-  flex-wrap: wrap;
+  padding: 24px 0;
+  display: grid;
   justify-content: center;
+  grid-template-columns: repeat(4, 250px);
+  grid-column-gap: 36px;
+  grid-row-gap: 40px;
 }
 </style>

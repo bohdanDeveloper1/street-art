@@ -36,7 +36,7 @@ const oneStarRatingInPercent = computed(() => {
       </div>
       <div style="display: flex; align-items: center">
         <div class="average-rating roboto-medium">
-          {{props.averageRating}}
+          {{props.averageRating || 0}}
         </div>
         <div style="margin-top: 8px;">
           /5
@@ -45,6 +45,7 @@ const oneStarRatingInPercent = computed(() => {
       <div style="font-size: 0.8em">
         number of comments: {{props.numberOfComments}}
       </div>
+      <slot name="button"/>
     </div>
     <div class="vertical-line"></div>
     <div class="rating-stars-container">

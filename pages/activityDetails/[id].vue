@@ -1,6 +1,6 @@
 <!-- todo:
-  переробити перевірку логування користувача
-  зробити логіку для збереження активностей до улюблених
+  - переробити перевірку логування користувача
+  - зробити логіку для збереження активностей до улюблених
  -->
 <script setup lang="ts">
 import { doc, getDoc } from "firebase/firestore";
@@ -11,6 +11,7 @@ import FirebaseAuthComponent from "~/components/auth/FirebaseAuthComponent.vue";
 import { useAddCommentStore } from "~/stores/addComment";
 import { storeToRefs } from 'pinia'
 import CommentRating from "~/components/activityDetails/CommentRating.vue";
+import {ref, reactive, watch, onMounted} from 'vue'
 
 interface IActivityData {
   activityId: string,
@@ -42,11 +43,11 @@ interface IDateList{
   end: string,
 }
 
-const { $firestore } = useNuxtApp();
+const {$firestore} = useNuxtApp();
 const storage = getStorage();
 const route = useRoute();
 const addCommentStore = useAddCommentStore();
-const { showFirebaseAuthComponent, showAddCommentComponent } = storeToRefs(addCommentStore);
+const {showFirebaseAuthComponent, showAddCommentComponent} = storeToRefs(addCommentStore);
 const userUid = ref<string>('');
 
 const activityData = reactive<IActivityData>({
@@ -64,7 +65,7 @@ const activityData = reactive<IActivityData>({
     mainPhotoRef: '',
     name: '',
     streetName: '',
-});
+})
 const artistData = reactive<artistDataInterface>({
   name: '',
 });
@@ -203,7 +204,7 @@ async function getActivityComments(){
     activityComments.push(activityComment)
   });
 
-  averageRating.value = ratingSum.value / activityComments.length;
+  averageRating.value = parseFloat((ratingSum.value / activityComments.length).toFixed(1));
   showRatingLoader.value = false;
 }
 
@@ -234,6 +235,10 @@ onBeforeMount(async () => {
   await getActivityPhotos();
   await getActivityComments();
 });
+
+const chevronColor = ref<string>('dimgray')
+
+const isNewCommentAdded = ref<boolean>(false)
 </script>
 
 <template>
@@ -252,11 +257,15 @@ onBeforeMount(async () => {
       </div>
       <div class="carousel-card-block">
         <div class="carousel-container">
-          <v-carousel class="my-carousel">
-            <v-carousel-item v-for="photo in activityPhotos" :key="photo"
-                             :src="photo"
-                             :alt="photo"
-                             cover
+          <v-carousel
+            class="my-carousel"
+            show-arrows="hover"
+          >
+            <v-carousel-item
+              v-for="photo in activityPhotos" :key="photo"
+              :src="photo"
+              :alt="photo"
+              cover
             ></v-carousel-item>
           </v-carousel>
         </div>
@@ -264,17 +273,26 @@ onBeforeMount(async () => {
           <div class="card-dates-item">
             <img src="/images/calendarIcon.svg" alt="Time:">
             <div class="activity-dates">
-              <div class="roboto-bold" style="margin: 8px 0;">
-                {{filteredDatesStartEnd[0].start}}
+              <div style="margin: 8px 0;">
+                <div style="margin-bottom: 8px">
+                  <span class="roboto-bold" style="margin-right: 8px">Start:</span>{{filteredDatesStartEnd[0].start}}
+                </div>
+                <div>
+                  <span class="roboto-bold" style="margin-right: 16px">End:</span>{{filteredDatesStartEnd[0].end}}
+                </div>
               </div>
-              <div class="start-end-dates-container">
-                <div class="start-end-dates-info" style="margin-bottom: 6px;">Also at:</div>
+              <div class="start-end-dates-info" style="margin-bottom: 8px;">Also at:</div>
+              <div
+                :class="['start-end-dates-container', {'container-scrollable': filteredDatesStartEnd.length > 5}]"
+              >
                 <div v-for="item in filteredDatesStartEnd">
-                  <div>
-                    <div style="margin-bottom: 4px;"><span class="roboto-bold">Start:</span> {{item.start}}</div>
-                    <div><span class="roboto-bold">End:</span> {{item.end}}</div>
+                  <div v-if="item != filteredDatesStartEnd[0]">
+                    <div>
+                      <div style="margin-bottom: 4px;"><span class="roboto-bold">Start:</span> {{item.start}}</div>
+                      <div><span class="roboto-bold">End:</span> {{item.end}}</div>
+                    </div>
+                    <hr style="margin-top: 4px">
                   </div>
-                  <hr style="margin-top: 4px">
                 </div>
               </div>
             </div>
@@ -312,7 +330,7 @@ onBeforeMount(async () => {
         <v-expansion-panels>
           <v-expansion-panel
               title="About artist"
-              text="There is not information about artist yet"
+              text="Artist haven`t provide information about himself yet."
           >
           </v-expansion-panel>
         </v-expansion-panels>
@@ -332,13 +350,23 @@ onBeforeMount(async () => {
       <!--      <activities-container-component :cityName="activityData.cityName" :activity-id="activityData.activityId"></activities-container-component>-->
       <!--    </div>-->
       <div class="comments-container">
-        <!--  Show loader   -->
+        <!--  Loader   -->
         <div v-if="showRatingLoader === true" class="show-rating-loader">
           <loader-component width="40px" height="40px"></loader-component>
         </div>
-        <!--  Show statistics  -->
-        <div v-if="activityComments.length > 0 && showRatingLoader === false">
-          <h4>Activity comments:</h4>
+        <!--  Statistics  -->
+        <div v-if="showRatingLoader === false">
+          <h4 v-if="activityComments.length">Activity comments:</h4>
+          <h4 v-else>No comments yet</h4>
+          <div v-if="isNewCommentAdded" class="alert-success">
+            <v-alert
+                color="success"
+                icon="$success"
+                :closable="true"
+                title="Comment was added"
+                text="Thank`s for your opinion"
+            ></v-alert>
+          </div>
           <comment-rating
               :oneStarRating="oneStarRating"
               :twoStarRating="twoStarRating"
@@ -347,31 +375,43 @@ onBeforeMount(async () => {
               :fiveStarRating="fiveStarRating"
               :numberOfComments="activityComments.length"
               :averageRating="averageRating"
-          ></comment-rating>
-          <button v-if="showAddCommentComponent === false" class="add-comment-btn" @click="addActivityComment">
-            Add comment
-          </button>
+          >
+            <template v-slot:button>
+              <button v-if="showAddCommentComponent === false" class="add-comment-btn" @click="addActivityComment">
+                Add comment
+              </button>
+            </template>
+          </comment-rating>
         </div>
-        <!--  Show no comments -->
-        <div v-if="activityComments.length === 0">
-          <h4> No comments yet</h4>
-          <button v-if="showAddCommentComponent === false" class="add-comment-btn" @click="addActivityComment">
-            Add comment
-          </button>
-        </div>
-        <!--  Show add comment  -->
+        <!--  Add comment container      -->
         <div v-if="showAddCommentComponent === true" class="add-comment-container">
           <activity-details-add-comment
               :user-uid="userUid"
               :activity-uid="activityData.activityId"
               :artist-uid="activityData.artistUid"
-              @get-comments="getActivityComments"
+              @getComments="getActivityComments"
+              @commentWasAdded="isNewCommentAdded = true"
           ></activity-details-add-comment>
         </div>
         <!--  Show see comments btn  -->
-        <div v-if="activityComments.length > 0 && showRatingLoader === false">
-          <button  class="see-comments-btn" @click="showActivityComments = !showActivityComments">
+        <div
+          class="see-comments-btn-wrapper"
+          v-if="activityComments.length > 0 && showRatingLoader === false"
+        >
+          <hr style="width:100%;color:grey">
+          <button
+            class="see-comments-btn"
+            @mouseover="chevronColor = 'black'"
+            @mouseout="chevronColor = 'dimgray'"
+            @click="showActivityComments = !showActivityComments"
+          >
             See comments
+            <ui-svg-component
+                svgName="M7.41 8.58L12 13.17l4.59-4.59L18 10l-6 6l-6-6z"
+                class="chevron-down-svg"
+                :pathFill="chevronColor"
+                :class="{'chevron-up': showActivityComments}"
+            />
           </button>
         </div>
         <!--   Comments  components   -->
@@ -387,11 +427,11 @@ onBeforeMount(async () => {
     <div v-else>
      <page-loader-component></page-loader-component>
     </div>
-    <div v-if="showFirebaseAuthComponent" class="overlay" @click="addCommentStore.showFirebaseAuthComponent = false"></div>
+    <div v-if="showFirebaseAuthComponent" class="overlay" @click="addCommentStore.showFirebaseAuthComponent = false"/>
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .comments-container{
   background-color: white;
   border-radius: 10px;
@@ -476,6 +516,37 @@ onBeforeMount(async () => {
   align-items: start;
 }
 
+.container-scrollable {
+  cursor: pointer;
+  max-height: 220px;
+  overflow: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  &:hover {
+    scrollbar-width: auto;
+
+    &::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: rgba(0, 0, 0, 0.5);
+      border-radius: 10px;
+    }
+
+    &::-webkit-scrollbar-track{
+      background: lightgrey;
+      border-radius: 10px;
+    }
+  }
+}
+
+
 .card-item > img, .card-dates-item > img{
   margin-right: 8px;
 }
@@ -556,18 +627,39 @@ onBeforeMount(async () => {
 /* comments  ---------------------------------------------------------------------------*/
 .add-comment-btn{
   width: 100%;
-  margin-top: 8px;
-  padding: 16px 0;
+  margin-top: 4px;
+  padding: 12px 0;
   border-radius: 5px;
   border: 1px solid lightgrey;
+
+  &:hover{
+    font-weight: 500;
+  }
+}
+
+.see-comments-btn-wrapper{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-bottom: 4px;
 }
 
 .see-comments-btn{
-  width: 100%;
-  margin-bottom: 24px;
-  padding: 16px 0;
-  border-radius: 5px;
-  border: 1px solid lightgrey;
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+  &:hover{
+    font-weight: 500;
+  }
+}
+
+.chevron-down-svg {
+  margin: 0 auto;
+  transition: transform 0.2s cubic-bezier(0, 0.6, 0.3, 1.5);
+}
+
+.chevron-up{
+  transform: rotate(180deg);
 }
 
 /* make RWD ----------------------------------------------------------------------------*/

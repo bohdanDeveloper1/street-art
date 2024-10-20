@@ -5,5 +5,9 @@ export const useAddCommentStore = defineStore('addComment', () => {
     const showFirebaseAuthComponent = ref<boolean>(false);
     const showAddCommentComponent = ref<boolean>(false);
 
-    return { logInDuringAddingComment, showFirebaseAuthComponent, showAddCommentComponent };
+    return {
+        logInDuringAddingComment,
+        showFirebaseAuthComponent,
+        showAddCommentComponent,
+    }
 });

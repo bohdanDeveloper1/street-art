@@ -11,5 +11,5 @@ interface IDateList{
 export const useDateListStore = defineStore('dateList', () => {
     const datesList = reactive<IDateList[]>([]);
 
-    return { datesList };
+    return {datesList};
 });

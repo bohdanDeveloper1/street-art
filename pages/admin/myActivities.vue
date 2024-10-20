@@ -4,7 +4,7 @@
       <h2 class="title">My activities</h2>
     </div>
     <div class="cards-container">
-      <artist-activity-component
+      <ActivityComponent
           v-for="activity in userActivitiesData"
           :key="activity.id"
           :mainPhotoRef="activity.mainPhotoRef"
@@ -22,6 +22,8 @@
 
 <script setup lang="ts">
 import { collection, query, where, getDocs } from "firebase/firestore";
+import {onBeforeMount} from 'vue'
+import ActivityComponent from '../../components/ActivityComponent.vue'
 
 interface userActivityData{
   id: string,
@@ -35,7 +37,7 @@ interface userActivityData{
   dateTimestamp: number,
 }
 
-const { $firestore } = useNuxtApp();
+const {$firestore}: any = useNuxtApp();
 const userActivitiesData = reactive<userActivityData[]>([]);
 
 // get artist activities from Firestore
@@ -72,9 +74,6 @@ onBeforeMount(async () => {
 }
 
 .cards-container{
-  display: flex;
-  flex-wrap: wrap;
-  margin-top: 25px;
-  justify-content: space-evenly;
+
 }
 </style>

@@ -3,7 +3,6 @@ import { useForm, useField } from 'vee-validate';
 import { useAddCommentStore } from "~/stores/addComment";
 import { collection, addDoc } from "firebase/firestore";
 
-
 const { $firestore } = useNuxtApp();
 const addCommentStore = useAddCommentStore();
 const props = defineProps<{
@@ -11,7 +10,7 @@ const props = defineProps<{
   activityUid: string,
   artistUid: string
 }>();
-const emit = defineEmits(['getComments']);
+const emit = defineEmits(['getComments', 'commentWasAdded']);
 const authorName = ref<string>('Bogdan');
 const activityRating = ref<number>(0);
 const isLoading = ref<boolean>(false);
@@ -38,7 +37,7 @@ const onSubmit = handleSubmit(async (values) => {
   await addActivityComment(values);
 })
 
-async function addActivityComment(values: any){
+async function addActivityComment(values: any) {
   const dateNow = new Date();
   await addDoc(collection($firestore, "comments"), {
     authorName: authorName.value,
@@ -50,8 +49,10 @@ async function addActivityComment(values: any){
     date: dateNow.getDate()
   });
 
-  emit('getComments');
-  isCommentAdded.value = true;
+  emit('commentWasAdded')
+  emit('getComments')
+  isCommentAdded.value = true
+  addCommentStore.showAddCommentComponent = false
 }
 
 function setRating(newRating: number) {
@@ -69,9 +70,7 @@ onBeforeMount(async () => {
       <div class="comment-author-name roboto-medium">
         {{ authorName }}
         <button @click="addCommentStore.showAddCommentComponent = false">
-          <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12z"></path>
-          </svg>
+          <ui-svg-component svgName="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12z"/>
         </button>
       </div>
       <form @submit="onSubmit">
@@ -104,25 +103,14 @@ onBeforeMount(async () => {
           <div class="my-error-message" style="margin-top: -12px;">{{commentMessage.errorMessage.value}}</div>
         </div>
         <button class="add-comment-btn">
-      <span v-if="!isLoading">
-        Add comment
-      </span>
+          <span v-if="!isLoading">
+            Add comment
+          </span>
           <span v-else>
-        <loader-component width="20px" height="20px"></loader-component>
-      </span>
+            <loader-component width="20px" height="20px"></loader-component>
+          </span>
         </button>
       </form>
-    </div>
-    <div v-else>
-      <div class="alert-success">
-        <v-alert
-            color="success"
-            icon="$success"
-            :closable="true"
-            title="Your comment was added"
-            text="Thank you for your comment"
-        ></v-alert>
-      </div>
     </div>
   </div>
 </template>
@@ -156,6 +144,10 @@ onBeforeMount(async () => {
   width: 140px;
   border-radius: 5px;
   border: 1px solid lightgrey;
+
+  &:hover{
+    font-weight: 500;
+  }
 }
 
 .comment-rating svg {

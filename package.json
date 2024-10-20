@@ -32,7 +32,10 @@
   },
   "devDependencies": {
     "nuxt3-leaflet": "^1.0.12",
+    "sass": "^1.78.0",
+    "typescript": "^5.6.3",
     "vite-plugin-vuetify": "^2.0.3",
+    "vue-tsc": "^2.1.6",
     "vuetify": "^3.5.16"
   }
 }

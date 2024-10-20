@@ -8,7 +8,7 @@
 useHead({
   title: 'Activities',
   meta: [
-    { name: 'Street art', content: 'activities' }
+    {name: 'Street art', content: 'activities'}
   ],
-});
+})
 </script>

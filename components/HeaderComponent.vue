@@ -1,96 +1,236 @@
 <template>
 <div>
-  <div class="header">
-    <div class="header__container _container">
-      <nav class="navbar navbar-expand-lg">
-        <div class="container-fluid">
-          <NuxtLink to="/" class="navbar-brand">Street art</NuxtLink>
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-          </button>
-          <div class="collapse navbar-collapse" id="navbarNavDropdown">
-            <ul class="navbar-nav  w-100">
-                <!--              <li class="nav-item" v-if="userRole">-->
-                <!--                <NuxtLink to="/savedActivitiesPage" class="nav-link">Saved activities</NuxtLink>-->
-                <!--              </li>-->
-              <li class="nav-item dropdown" v-if="userRole === 'artist'">
-                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                  Your activities
-                </a>
-                <ul class="dropdown-menu">
-                  <li><NuxtLink to="/admin/myActivities" class="dropdown-item">My activities</NuxtLink></li>
-                  <li><NuxtLink to="/admin/addActivity" class="dropdown-item">Add activity</NuxtLink></li>
-                </ul>
-              </li>
-              <!--  PROFILE  -->
-              <li class="nav-item max-right" v-if="userRole">
-                <NuxtLink to="/userComponent" class="nav-link">
-                <img src="/images/userIcon.svg" alt="user">
-                </NuxtLink>
-              </li>
-              <li class="nav-item" v-if="!userRole">
-                <NuxtLink to="/userComponent" class="nav-link">Log in</NuxtLink>
-              </li>
-              <li class="nav-item" v-if="userRole">
-                <NuxtLink to="/logOutPage" class="nav-link">Log out</NuxtLink>
-              </li>
-            </ul>
-          </div>
+  <div
+    class="header"
+    :class="{'show-sidebar': showSidebar}"
+  >
+    <div class="_container header-wrapper">
+      <div class="left-section-container">
+        <ul class="links-list">
+          <li>
+            <NuxtLink to="/" class="header-item header-item-brand">
+              Street art
+              <img class="app-logo-img" src="/images/street-art-logo.jpg" alt="logo">
+            </NuxtLink>
+          </li>
+          <li v-if="false">
+            <NuxtLink to="/savedActivitiesPage" class="header-item">Saved activities</NuxtLink>
+          </li>
+          <li v-if="userInfo.role === 'artist'">
+            <NuxtLink to="/admin/myActivities" class="header-item">My activities</NuxtLink>
+          </li>
+          <li v-if="userInfo.role === 'artist'">
+            <NuxtLink to="/admin/addActivity" class="header-item">Add activity</NuxtLink>
+          </li>
+        </ul>
+      </div>
+      <div class="right-section-container">
+        <ul class="links-list">
+          <li v-if="userInfo.role">
+            <NuxtLink to="/userComponent" class="header-item">
+              <img src="/images/userIcon.svg" alt="user">
+            </NuxtLink>
+          </li>
+          <li v-else>
+            <NuxtLink to="/userComponent" class="header-item">Log in</NuxtLink>
+          </li>
+          <li v-if="userInfo.role">
+            <div class="header-item" @click="logOut">Log out</div>
+          </li>
+        </ul>
+        <div class="burger-menu-btn" @click="showSidebar = !showSidebar">
+          <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              v-if="!showSidebar"
+          >
+            <path d="M3 18h18v-2H3zm0-5h18v-2H3zm0-7v2h18V6z"/>
+          </svg>
+          <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              v-else
+          >
+            <path d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12z"/>
+          </svg>
         </div>
-      </nav>
+      </div>
     </div>
   </div>
 </div>
 </template>
 
 <script setup lang="ts">
-// отримати userRole
-const userRoleCookie = useCookie('userRoleCookie');
-const userRole = ref(userRoleCookie.value);
+import {useAuthStore} from '~/stores/authStore/useAuthStore'
+import {storeToRefs} from 'pinia'
+import { useRouter } from 'vue-router'
+import type {IUser} from '~/stores/authStore/types/IUser'
 
-watch(userRoleCookie, (newUserRoleCookie) => {
-  userRole.value = newUserRoleCookie;
+const authStore = useAuthStore()
+const {userInfo}: IUser = storeToRefs(authStore)
+
+async function logOut() {
+  await authStore.logOut()
+}
+
+const showSidebar = ref<boolean>(false)
+const router = useRouter();
+
+watch(showSidebar, (value: boolean) => {
+  if (value) {
+    document.body.classList.add('no-scroll');
+  } else {
+    document.body.classList.remove('no-scroll');
+  }
+})
+
+router.afterEach(() => {
+  showSidebar.value = false;
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .header{
+  width: 100vw;
+  height: 88px;
   background-color: black;
+
+  .header-wrapper{
+    display: flex;
+    height: 100%;
+    justify-content: space-between;
+
+    .right-section-container{
+      display: flex;
+    }
+  }
 }
 
-.navbar{
+.links-list{
   display: flex;
+  height: 100%;
   align-items: center;
-  min-height: 80px;
+  justify-content: start;
+
+  li{
+    align-items: center;
+    &:not(:last-child) {
+      margin-right: 18px;
+    }
+
+    .header-item{
+      color: lightgray;
+      font-size: 24px;
+      cursor: pointer;
+
+      &:hover{
+        color: white;
+      }
+    }
+
+    .header-item-brand{
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 28px;
+      color: white;
+    }
+
+    .app-logo-img{
+      width: 48px;
+      height: 48px;
+      border-radius: 4px;
+    }
+  }
 }
 
-.navbar-nav .nav-link{
-  color: lightgray;
-  font-size: 20px;
-}
-
-.nav-link{
-  margin-top: 3px;
-}
-
-.navbar-brand{
+.router-link-active {
   color: white;
-  font-size: 25px;
 }
 
-.navbar-nav .nav-link:hover{
-  color: white;
+.burger-menu-btn{
+  display: none;
+  align-items: center;
+
+  svg{
+    path{
+      fill: lightgray;
+    }
+  }
 }
 
-.navbar-toggler {
-  background-color: lightgray;
+.no-scroll {
+  overflow: hidden;
+}
+//////////////////////////////////////////////////// RWD
+@media (max-width: 750px) {
+  .links-list{
+    li{
+      .header-item{
+        display: none;
+      }
+
+      .header-item-brand{
+        display: flex;
+      }
+    }
+  }
+
+  .burger-menu-btn{
+    display: flex;
+  }
+
+  .show-sidebar{
+    height: 100vh;
+
+    .header-wrapper{
+      flex-direction: column;
+      height: 100%;
+      align-items: center;
+      justify-content: start;
+      padding-top: 32px;
+    }
+
+    .links-list{
+      width: 100vw;
+      flex-direction: column;
+      gap: 20px;
+
+      li{
+        margin: 0 auto;
+
+        .header-item{
+          display: flex;
+        }
+      }
+    }
+
+    .burger-menu-btn{
+      position: absolute;
+      top: 12px;
+      right: 12px;
+    }
+  }
 }
 
-.max-right {
-  margin-left: auto;
-}@media (max-width: 993px) {
-  .max-right{
-    margin-left: 0;
+@media (max-width: 360px) {
+  .links-list{
+    li{
+      .header-item-brand{
+        font-size: 24px;
+        gap: 8px;
+
+        .app-logo-img{
+          width: 36px;
+          height: 36px;
+          border-radius: 2px;
+        }
+      }
+    }
   }
 }
 </style>

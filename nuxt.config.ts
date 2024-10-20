@@ -6,6 +6,9 @@ export default defineNuxtConfig({
  build: {
   transpile: ['@vuepic/vue-datepicker', 'vuetify']
 },
+typescript: {
+    typeCheck: true
+},
 
  // default settings for SEO
 app: {

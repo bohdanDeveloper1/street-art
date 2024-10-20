@@ -4,16 +4,15 @@
 <template>
 <div class="_container">
 <div class="content">
-  <h2>Hello {{userNameCookie}}!</h2>
+  <h2>Hello user</h2>
 </div>
 </div>
 </template>
 
 <script setup lang="ts">
-const userUidCookie = useCookie('userUidCookie');
-const userEmailCookie = useCookie('userEmailCookie');
-const userNameCookie = useCookie('userNameCookie');
-const userRoleCookie = useCookie('userRoleCookie');
+import {useAuthStore} from '~/stores/authStore/useAuthStore'
+
+const authStore = useAuthStore()
 </script>
 
 <style scoped>
