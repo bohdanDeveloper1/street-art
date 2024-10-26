@@ -1,4 +1,4 @@
-<!-- width, height: 20px  -->
+<!-- todo: add propsWithDefaults: width, height: 20px  -->
 <template>
   <span class="loader" :style="{width: props.width, height: props.height}"></span>
 </template>

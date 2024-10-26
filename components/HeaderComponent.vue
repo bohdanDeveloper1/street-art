@@ -69,7 +69,9 @@ import {useAuthStore} from '~/stores/authStore/useAuthStore'
 import {storeToRefs} from 'pinia'
 import { useRouter } from 'vue-router'
 import type {IUser} from '~/stores/authStore/types/IUser'
+import {getAuth, onAuthStateChanged} from 'firebase/auth'
 
+const auth = getAuth()
 const authStore = useAuthStore()
 const {userInfo}: IUser = storeToRefs(authStore)
 
@@ -85,6 +87,23 @@ watch(showSidebar, (value: boolean) => {
     document.body.classList.add('no-scroll');
   } else {
     document.body.classList.remove('no-scroll');
+  }
+})
+
+// authentication state observer
+onAuthStateChanged(auth, async(user) => {
+  if (user && user.emailVerified) {
+    authStore.isLoggedIn = true
+    authStore.userInfo.uid = user.uid
+    authStore.userInfo.email = user.email || ''
+
+    const userData = await authStore.getUserData(user.uid)
+    if(!userData) return
+
+    authStore.userInfo.name = userData.name
+    authStore.userInfo.role = userData.role
+  } else {
+    return
   }
 })
 

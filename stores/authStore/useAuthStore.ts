@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { doc, getDoc } from "firebase/firestore";
 import {ref} from 'vue';
 import { useNuxtApp } from '#build/imports';
-import {getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut} from 'firebase/auth'
+import {getAuth, signInWithEmailAndPassword, signOut} from 'firebase/auth'
 import { useAddCommentStore } from "~/stores/addComment";
 import type {IUser} from '~/stores/authStore/types/IUser'
 
@@ -19,23 +19,6 @@ export const useAuthStore = defineStore('auth', () => {
     const isLoggedIn = ref<boolean>(false)
     const isProblemWithLogIn = ref<boolean>(false)
     const loginErrorMessage = ref<string>('')
-
-    // authentication state observer
-    onAuthStateChanged(auth, async(user) => {
-        if (user && user.emailVerified) {
-            isLoggedIn.value = true
-            userInfo.uid = user.uid
-            userInfo.email = user.email || ''
-
-            const userData = await getUserData(user.uid)
-            if(!userData) return
-
-            userInfo.name = userData.name
-            userInfo.role = userData.role
-        } else {
-            console.log('user is not authorized')
-        }
-    })
 
     async function logIn(email:string, password:string, ) {
         try{
@@ -119,5 +102,6 @@ export const useAuthStore = defineStore('auth', () => {
         userInfo,
         logIn,
         logOut,
+        getUserData,
     }
 })

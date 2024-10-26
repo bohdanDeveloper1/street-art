@@ -1,10 +1,12 @@
 <template>
   <div>
-    <activities-container-component :cityName="''"></activities-container-component>
+    <ActivitiesContainerComponent/>
   </div>
 </template>
 
 <script setup lang="ts">
+import ActivitiesContainerComponent from '~/components/activitiesContainerComponent.vue'
+
 useHead({
   title: 'Activities',
   meta: [

@@ -1,6 +1,7 @@
 <!-- todo:
-  - переробити перевірку логування користувача
-  - зробити логіку для збереження активностей до улюблених
+  1. change logic to components logic
+  2. add ActivitiesContainerComponent to show other activities in city
+  3. зробити логіку для збереження активностей до улюблених
  -->
 <script setup lang="ts">
 import { doc, getDoc } from "firebase/firestore";
@@ -11,47 +12,42 @@ import FirebaseAuthComponent from "~/components/auth/FirebaseAuthComponent.vue";
 import { useAddCommentStore } from "~/stores/addComment";
 import { storeToRefs } from 'pinia'
 import CommentRating from "~/components/activityDetails/CommentRating.vue";
-import {ref, reactive, watch, onMounted} from 'vue'
+import {ref, reactive, watch} from 'vue'
+import type {IActivityData} from '~/types/IActivityData'
 
-interface IActivityData {
-  activityId: string,
-  additionalPhotosRefs: string[],
-  artistUid: string,
-  category: string,
-  cityAdmin: string,
-  cityName: string,
-  coordinatesLat: number,
-  coordinatesLng: number,
-  activityDates: {start: number, end: number}[],
-  description: string,
-  houseNumber: string,
-  mainPhotoRef: string,
-  name: string,
-  streetName: string,
+interface ExtendedActivityData extends IActivityData {
+  additionalPhotosRefs: string[];
+  artistUid: string;
+  coordinatesLat: number;
+  coordinatesLng: number;
+  description: string;
 }
+
 interface artistDataInterface{
   name: string,
 }
+
 interface IActivityComment{
   authorName: string,
   ratingInStars: number,
   message: string,
   date: number
 }
+
 interface IDateList{
   start: string,
   end: string,
 }
 
-const {$firestore} = useNuxtApp();
+const {$firestore}: any = useNuxtApp();
 const storage = getStorage();
 const route = useRoute();
 const addCommentStore = useAddCommentStore();
 const {showFirebaseAuthComponent, showAddCommentComponent} = storeToRefs(addCommentStore);
 const userUid = ref<string>('');
 
-const activityData = reactive<IActivityData>({
-    activityId: '',
+const activityData = reactive<ExtendedActivityData >({
+    id: '',
     additionalPhotosRefs: [],
     artistUid: '',
     category: '',
@@ -115,12 +111,12 @@ const filteredDatesStartEnd = computed(() => {
   return datesStartEnd;
 })
 
-async function getActivityData(){
+async function getActivityData() {
   const docRef = doc($firestore, "activities", `${route.params.id}`);
   const docSnap = await getDoc(docRef);
 
   if (docSnap.exists()) {
-    activityData.activityId = docSnap.id;
+    activityData.id = docSnap.id;
     activityData.additionalPhotosRefs = docSnap.data().additionalPhotosRefs;
     activityData.artistUid = docSnap.data().artistUid;
     activityData.category = docSnap.data().category;
@@ -143,7 +139,7 @@ async function getActivityData(){
   }
 }
 
-async function getArtistData(){
+async function getArtistData() {
   const docRef = doc($firestore, "users", `${activityData.artistUid}`);
   const docSnap = await getDoc(docRef);
 
@@ -154,7 +150,7 @@ async function getArtistData(){
   }
 }
 
-async function getActivityPhotos(){
+async function getActivityPhotos() {
   // get main photo
   if(activityData.mainPhotoRef){
     let mainPhoto: string = await getDownloadURL(storageRef(storage, activityData.mainPhotoRef));
@@ -170,7 +166,7 @@ async function getActivityPhotos(){
   }
 }
 
-async function getActivityComments(){
+async function getActivityComments() {
   showRatingLoader.value = true;
 
   // оновлення значень для рейтингу
@@ -183,7 +179,7 @@ async function getActivityComments(){
   ratingSum.value = 0;
   averageRating.value = 0;
 
-  const q = query(collection($firestore, "comments"), where("activityUid", "==", `${activityData.activityId}`));
+  const q = query(collection($firestore, "comments"), where("activityUid", "==", `${activityData.id}`));
   const querySnapshot = await getDocs(q);
 
   querySnapshot.forEach((doc) => {
@@ -221,7 +217,7 @@ async function addActivityComment(){
   }
 }
 
-// no scroll watchers
+// no scroll
 watch(showFirebaseAuthComponent, (newValue) =>{
   if(newValue === true){
     document.documentElement.classList.add('no-scroll');
@@ -234,7 +230,7 @@ onBeforeMount(async () => {
   await getActivityData();
   await getActivityPhotos();
   await getActivityComments();
-});
+})
 
 const chevronColor = ref<string>('dimgray')
 
@@ -245,7 +241,7 @@ const isNewCommentAdded = ref<boolean>(false)
   <div>
     <div v-if="showFirebaseAuthComponent" class="auth-component-container">
       <div class="auth-component">
-        <firebase-auth-component></firebase-auth-component>
+        <FirebaseAuthComponent/>
       </div>
     </div>
     <div class="content" v-if="activityPhotos.length > 0">
@@ -347,7 +343,7 @@ const isNewCommentAdded = ref<boolean>(false)
         </LMap>
       </div>
       <!--    <div class="activities-container-component-container">-->
-      <!--      <activities-container-component :cityName="activityData.cityName" :activity-id="activityData.activityId"></activities-container-component>-->
+      <!--      <activities-container-component :cityName="activityData.cityName" :activity-id="activityData.id"></activities-container-component>-->
       <!--    </div>-->
       <div class="comments-container">
         <!--  Loader   -->
@@ -387,7 +383,7 @@ const isNewCommentAdded = ref<boolean>(false)
         <div v-if="showAddCommentComponent === true" class="add-comment-container">
           <activity-details-add-comment
               :user-uid="userUid"
-              :activity-uid="activityData.activityId"
+              :activity-uid="activityData.id"
               :artist-uid="activityData.artistUid"
               @getComments="getActivityComments"
               @commentWasAdded="isNewCommentAdded = true"
@@ -425,7 +421,7 @@ const isNewCommentAdded = ref<boolean>(false)
       </div>
     </div>
     <div v-else>
-     <page-loader-component></page-loader-component>
+      <PageLoaderComponent/>
     </div>
     <div v-if="showFirebaseAuthComponent" class="overlay" @click="addCommentStore.showFirebaseAuthComponent = false"/>
   </div>

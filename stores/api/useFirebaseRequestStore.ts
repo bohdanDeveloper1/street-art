@@ -46,7 +46,7 @@ export const useFirebaseRequestStore = defineStore('firebaseRequest', () => {
             return querySnapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
-            }));
+            }))
         } catch (e) {
             console.error("Error fetching documents: ", e);
             return e;
@@ -81,5 +81,12 @@ export const useFirebaseRequestStore = defineStore('firebaseRequest', () => {
             console.error("Error adding document: ", e)
             return false
         }
+    }
+
+    return{
+        post,
+        get,
+        patch,
+        deleteDocument,
     }
 })

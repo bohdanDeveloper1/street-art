@@ -74,6 +74,11 @@ app: {
       transformAssetUrls,
     },
   },
+  plugins: [
+     require('vite-plugin-checker')({
+         vueTsc: true,
+     }),
+  ],
 },
 
  ssr: true,
