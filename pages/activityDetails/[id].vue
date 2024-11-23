@@ -1,6 +1,4 @@
 <!-- todo:
-  1. change logic to components logic
-  2. add ActivitiesContainerComponent to show other activities in city
   3. зробити логіку для збереження активностей до улюблених
  -->
 <script setup lang="ts">
@@ -13,40 +11,24 @@ import { useAddCommentStore } from "~/stores/addComment";
 import { storeToRefs } from 'pinia'
 import CommentRating from "~/components/activityDetails/CommentRating.vue";
 import {ref, reactive, watch} from 'vue'
-import type {IActivityData} from '~/types/IActivityData'
-
-interface ExtendedActivityData extends IActivityData {
-  additionalPhotosRefs: string[];
-  artistUid: string;
-  coordinatesLat: number;
-  coordinatesLng: number;
-  description: string;
-}
-
-interface artistDataInterface{
-  name: string,
-}
-
-interface IActivityComment{
-  authorName: string,
-  ratingInStars: number,
-  message: string,
-  date: number
-}
+import InfoCardComponent from '~/components/activityDetails/InfoCardComponent.vue'
+import type {IActivityComment} from '~/types/IActivityComment'
+import type {IArtistData} from '~/types/IArtistData'
+import type {IExtendedActivityData} from '~/types/IExtendedActivityData'
 
 interface IDateList{
-  start: string,
-  end: string,
+  start: string
+  end: string
 }
 
-const {$firestore}: any = useNuxtApp();
+const {$firestore}: any = useNuxtApp()
 const storage = getStorage();
 const route = useRoute();
 const addCommentStore = useAddCommentStore();
 const {showFirebaseAuthComponent, showAddCommentComponent} = storeToRefs(addCommentStore);
 const userUid = ref<string>('');
 
-const activityData = reactive<ExtendedActivityData >({
+const activityData = reactive<IExtendedActivityData>({
     id: '',
     additionalPhotosRefs: [],
     artistUid: '',
@@ -62,7 +44,7 @@ const activityData = reactive<ExtendedActivityData >({
     name: '',
     streetName: '',
 })
-const artistData = reactive<artistDataInterface>({
+const artistData = reactive<IArtistData>({
   name: '',
 });
 const activityPhotos = reactive<string[]>([]);
@@ -82,7 +64,7 @@ const averageRating = ref(0);
 
 // filteredDatesStartEnd дати початку та кінця активності, які > new Date().
 const filteredDatesStartEnd = computed(() => {
-  const datesStartEnd = reactive<IDateList[]>([]);
+  const datesStartEnd: IDateList[] = []
 
   for(let i = 0; i < activityData.activityDates.length; i++){
     if(activityData.activityDates[i].end > dateNow.getTime()){
@@ -111,31 +93,31 @@ const filteredDatesStartEnd = computed(() => {
   return datesStartEnd;
 })
 
+const isActivityDataFetching = ref<boolean | null>(null)
+
 async function getActivityData() {
-  const docRef = doc($firestore, "activities", `${route.params.id}`);
-  const docSnap = await getDoc(docRef);
+  const docRef = doc($firestore, "activities", `${route.params.id}`)
+  const docSnap = await getDoc(docRef)
 
   if (docSnap.exists()) {
     activityData.id = docSnap.id;
-    activityData.additionalPhotosRefs = docSnap.data().additionalPhotosRefs;
-    activityData.artistUid = docSnap.data().artistUid;
-    activityData.category = docSnap.data().category;
-    activityData.cityAdmin = docSnap.data().cityAdmin;
-    activityData.cityName = docSnap.data().cityName;
-    activityData.coordinatesLat = docSnap.data().coordinatesLat;
-    activityData.coordinatesLng = docSnap.data().coordinatesLng;
-    activityData.activityDates = docSnap.data().activityDates;
-    activityData.description = docSnap.data().description;
-    activityData.houseNumber = docSnap.data().houseNumber;
-    activityData.mainPhotoRef = docSnap.data().mainPhotoRef;
-    activityData.name = docSnap.data().name;
-    activityData.streetName = docSnap.data().streetName;
+    activityData.additionalPhotosRefs = docSnap.data().additionalPhotosRefs
+    activityData.artistUid = docSnap.data().artistUid
+    activityData.category = docSnap.data().category
+    activityData.cityAdmin = docSnap.data().cityAdmin
+    activityData.cityName = docSnap.data().cityName
+    activityData.coordinatesLat = docSnap.data().coordinatesLat
+    activityData.coordinatesLng = docSnap.data().coordinatesLng
+    activityData.activityDates = docSnap.data().activityDates
+    activityData.description = docSnap.data().description
+    activityData.houseNumber = docSnap.data().houseNumber
+    activityData.mainPhotoRef = docSnap.data().mainPhotoRef
+    activityData.name = docSnap.data().name
+    activityData.streetName = docSnap.data().streetName
 
-    // get artist data from DB
-    await getArtistData();
+    await getArtistData()
   } else {
-    // docSnap.data() will be undefined in this case
-    console.log("No such document!");
+    console.log("No such document!")
   }
 }
 
@@ -144,7 +126,7 @@ async function getArtistData() {
   const docSnap = await getDoc(docRef);
 
   if (docSnap.exists()) {
-    artistData.name = docSnap.data().name;
+    artistData.name = docSnap.data()?.name
   } else {
     console.log("No such document!");
   }
@@ -158,7 +140,7 @@ async function getActivityPhotos() {
   }
 
   // get additional photo
-  if(activityData.additionalPhotosRefs.length > 0){
+  if(activityData.additionalPhotosRefs.length){
     for(let i = 0; i < activityData.additionalPhotosRefs.length; i++){
       let additionalPhoto: string = await getDownloadURL(storageRef(storage,  activityData.additionalPhotosRefs[i]));
       activityPhotos.push(additionalPhoto);
@@ -226,10 +208,16 @@ watch(showFirebaseAuthComponent, (newValue) =>{
   }
 })
 
+async function fetchActivityDetailsData() {
+  isActivityDataFetching.value = true
+  await getActivityData()
+  await getActivityPhotos()
+  await getActivityComments()
+  isActivityDataFetching.value = false
+}
+
 onBeforeMount(async () => {
-  await getActivityData();
-  await getActivityPhotos();
-  await getActivityComments();
+  await fetchActivityDetailsData()
 })
 
 const chevronColor = ref<string>('dimgray')
@@ -244,107 +232,77 @@ const isNewCommentAdded = ref<boolean>(false)
         <FirebaseAuthComponent/>
       </div>
     </div>
-    <div class="content" v-if="activityPhotos.length > 0">
+    <div class="content" v-if="!isActivityDataFetching">
       <div class="activity-title">
         <h2 class="activity-title-header">{{activityData.name}}</h2>
         <div class="activity-title-category roboto-regular">
           {{activityData.category}}
         </div>
       </div>
-      <div class="carousel-card-block">
-        <div class="carousel-container">
-          <v-carousel
-            class="my-carousel"
-            show-arrows="hover"
-          >
-            <v-carousel-item
-              v-for="photo in activityPhotos" :key="photo"
-              :src="photo"
-              :alt="photo"
-              cover
-            ></v-carousel-item>
-          </v-carousel>
-        </div>
-        <div class="info-card">
-          <div class="card-dates-item">
-            <img src="/images/calendarIcon.svg" alt="Time:">
-            <div class="activity-dates">
-              <div style="margin: 8px 0;">
-                <div style="margin-bottom: 8px">
-                  <span class="roboto-bold" style="margin-right: 8px">Start:</span>{{filteredDatesStartEnd[0].start}}
-                </div>
-                <div>
-                  <span class="roboto-bold" style="margin-right: 16px">End:</span>{{filteredDatesStartEnd[0].end}}
-                </div>
-              </div>
-              <div class="start-end-dates-info" style="margin-bottom: 8px;">Also at:</div>
-              <div
-                :class="['start-end-dates-container', {'container-scrollable': filteredDatesStartEnd.length > 5}]"
-              >
-                <div v-for="item in filteredDatesStartEnd">
-                  <div v-if="item != filteredDatesStartEnd[0]">
-                    <div>
-                      <div style="margin-bottom: 4px;"><span class="roboto-bold">Start:</span> {{item.start}}</div>
-                      <div><span class="roboto-bold">End:</span> {{item.end}}</div>
-                    </div>
-                    <hr style="margin-top: 4px">
-                  </div>
-                </div>
-              </div>
-            </div>
+      <div class="sections-container">
+        <div class="left-section">
+          <div class="carousel-container">
+            <v-carousel
+                class="carousel"
+                show-arrows="hover"
+            >
+              <v-carousel-item
+                  v-for="photo in activityPhotos" :key="photo"
+                  :src="photo"
+                  :alt="photo"
+                  cover
+              ></v-carousel-item>
+            </v-carousel>
           </div>
-          <div class="card-item">
-            <img src="/images/locationIcon.svg" alt="Location:">
-            <div class="activity-address roboto-bold">{{activityData.cityName}}, {{activityData.streetName}} {{activityData.houseNumber}}</div>
-          </div>
-          <div class="artist-card-container">
-            <img src="/images/artist_test_photo.jpg" alt="artist_test_photo">
-            <div class="see-artist-info-btn_container">
-              <button class="see-artist-info-btn roboto-medium">
-                See artist
-              </button>
-            </div>
-          </div>
-          <!--        <div class="add-to-favourite-btn-container">-->
-          <!--          <v-btn-->
-          <!--              class="add-to-favourite-btn"-->
-          <!--          >-->
-          <!--            save activity-->
-          <!--          </v-btn>-->
-          <!--        </div>-->
-        </div>
-      </div>
-      <div class="activity-description">
-        <h4>
-          Activity description:
-        </h4>
-        <div class="roboto-regular">
-          {{activityData.description}}
-        </div>
-      </div>
-      <div class="expansion-panels-container">
-        <v-expansion-panels>
-          <v-expansion-panel
-              title="About artist"
-              text="Artist haven`t provide information about himself yet."
-          >
-          </v-expansion-panel>
-        </v-expansion-panels>
-      </div>
-      <div class="map-container">
-        <LMap class="map" :zoom="16" :center="[activityData.coordinatesLat, activityData.coordinatesLng]">
-          <LTileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution="&amp;copy; <a href=&quot;https://www.openstreetmap.org/&quot;>OpenStreetMap</a> contributors"
-              layer-type="base"
-              name="OpenStreetMap"
+          <InfoCardComponent
+              :activityData="activityData"
+              :filteredDatesStartEnd="filteredDatesStartEnd"
+              class="info-card-small-screen"
           />
-          <LMarker :lat-lng="[activityData.coordinatesLat, activityData.coordinatesLng]" />
-        </LMap>
+          <div class="activity-description">
+            <h4>
+              Activity description:
+            </h4>
+            <div class="roboto-regular">
+              {{activityData.description}}
+            </div>
+          </div>
+          <div class="expansion-panels-container">
+            <v-expansion-panels>
+              <v-expansion-panel
+                  title="About artist"
+                  text="Artist haven`t provide information about himself yet."
+              >
+              </v-expansion-panel>
+            </v-expansion-panels>
+          </div>
+          <div class="map-container">
+            <LMap class="map" :zoom="16" :center="[activityData.coordinatesLat, activityData.coordinatesLng]">
+              <LTileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution="&amp;copy; <a href=&quot;https://www.openstreetmap.org/&quot;>OpenStreetMap</a> contributors"
+                  layer-type="base"
+                  name="OpenStreetMap"
+              />
+              <LMarker :lat-lng="[activityData.coordinatesLat, activityData.coordinatesLng]" />
+            </LMap>
+          </div>
+        </div>
+        <div class="right-section">
+          <InfoCardComponent
+            :activityData="activityData"
+            :filteredDatesStartEnd="filteredDatesStartEnd"
+            class="info-card-large-screen"
+          />
+        </div>
       </div>
-      <!--    <div class="activities-container-component-container">-->
-      <!--      <activities-container-component :cityName="activityData.cityName" :activity-id="activityData.id"></activities-container-component>-->
-      <!--    </div>-->
+      <div class="activities-container-component-container">
+        <ActivitiesContainerComponent
+          :cityName="activityData.cityName"
+          :activity-id="activityData.id"
+          :showCardsInCarousel="true"
+        />
+      </div>
       <div class="comments-container">
         <!--  Loader   -->
         <div v-if="showRatingLoader === true" class="show-rating-loader">
@@ -475,11 +433,11 @@ const isNewCommentAdded = ref<boolean>(false)
   margin-bottom: 14px;
 }
 
-/* carousel-card-block ---------------------------------------------*/
-.carousel-card-block{
+/* sections styles  -------------------------------------------------------*/
+.sections-container{
   display: flex;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 32px;
 }
 
 /* carousel styles ------------------------------------------------ */
@@ -488,100 +446,10 @@ const isNewCommentAdded = ref<boolean>(false)
   height: 500px;
 }
 
-.my-carousel{
+.carousel{
+  width: 100% !important;
+  height: 100% !important;
   border-radius: 25px;
-}
-
-/* card styles  -----------------------------------------------------*/
-.info-card{
-  width: 350px;
-  border-radius: 12px;
-  border: 1px solid darkgrey;
-  padding: 16px;
-}
-
-.card-item{
-  display: flex;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.card-dates-item{
-  display: flex;
-  margin-bottom: 8px;
-  align-items: start;
-}
-
-.container-scrollable {
-  cursor: pointer;
-  max-height: 220px;
-  overflow: auto;
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    width: 0;
-    height: 0;
-  }
-
-  &:hover {
-    scrollbar-width: auto;
-
-    &::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background-color: rgba(0, 0, 0, 0.5);
-      border-radius: 10px;
-    }
-
-    &::-webkit-scrollbar-track{
-      background: lightgrey;
-      border-radius: 10px;
-    }
-  }
-}
-
-
-.card-item > img, .card-dates-item > img{
-  margin-right: 8px;
-}
-
-.add-to-favourite-btn-container{
-  margin-top: 12px;
-}
-
-.add-to-favourite-btn{
-  width: 100%;
-  background: #000;
-  color: white;
-}
-
-.artist-card-container{
-  width: 100%;
-  height: 130px;
-  display: flex;
-}
-
-.artist-card-container > img{
-  width: 50%;
-  height: 100%;
-  border-radius: 15px 0 0 15px;
-}
-
-.see-artist-info-btn_container{
-  width: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: end;
-  border-radius: 0 15px 15px 0;
-  background-color: lightgrey;
-}
-
-.see-artist-info-btn{
-  color: black;
-  font-size: large;
-  margin-bottom: 20px;
 }
 
 /* activity description  -------------------------------------------------------*/
@@ -600,7 +468,6 @@ const isNewCommentAdded = ref<boolean>(false)
 .map-container{
   width: 700px;
   height: 350px;
-  margin-bottom: 32px;
 }
 
 .map{
@@ -658,20 +525,20 @@ const isNewCommentAdded = ref<boolean>(false)
   transform: rotate(180deg);
 }
 
-/* make RWD ----------------------------------------------------------------------------*/
-@media (max-width: 1110px) {
+/* RWD ----------------------------------------------------------------------------*/
+@media (min-width: 1120px) {
+  .info-card-small-screen{
+    display: none;
+  }
+}
+
+@media (max-width: 1120px) {
   .content{
-    max-width: 730px;
-    padding: 0 15px;
+    max-width: calc(100vw - 30px);
   }
 
-  .carousel-card-block{
-    flex-direction: column;
-  }
-
-  .info-card{
-    border: 0;
-    padding: 25px 0 15px 5px;
+  .info-card-large-screen{
+    display: none;
   }
 
   .add-to-favourite-btn{
@@ -718,11 +585,6 @@ const isNewCommentAdded = ref<boolean>(false)
   .carousel-container{
     width: 310px;
     height: 460px;
-  }
-
-  .info-card{
-    width: 310px;
-    padding: 15px 0 15px 0;
   }
 
   .activity-description{

@@ -108,7 +108,7 @@ onAuthStateChanged(auth, async(user) => {
 })
 
 router.afterEach(() => {
-  showSidebar.value = false;
+  showSidebar.value = false
 })
 </script>
 

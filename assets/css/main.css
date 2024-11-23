@@ -1,7 +1,6 @@
 /* весь контент обертаю у wrapper */
 .wrapper{
     min-height: 100vh;
-    overflow: hidden;
     display: flex;
     flex-direction: column;
 }

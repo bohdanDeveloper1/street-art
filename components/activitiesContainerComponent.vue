@@ -3,12 +3,14 @@ import type {IActivityData} from '~/types/IActivityData'
 import ActivityComponent from '~/components/ActivityComponent.vue'
 import PageLoaderComponent from '~/components/pageLoaderComponent.vue'
 import {useFirebaseRequestStore} from '~/stores/api/useFirebaseRequestStore'
+import ActivityCardsCarousel from '~/components/ui/ActivityCardsCarousel.vue'
 
 interface Props {
   cityName?: string
   activityId?: string
   showArtistActivities?: boolean
   artistUid?: string
+  showCardsInCarousel?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -16,6 +18,7 @@ const props = withDefaults(defineProps<Props>(), {
   activityId: '',
   showArtistActivities: false,
   artistUid: '',
+  showCardsInCarousel: false,
 })
 const activitiesData = reactive<IActivityData[]>([])
 const requestStore = useFirebaseRequestStore()
@@ -80,20 +83,29 @@ onBeforeMount(async () => {
 <template>
   <div class="_container">
     <h2 class="other-activities-title" v-if="cityName && activitiesData.length > 0">Other activities in {{props.cityName}}</h2>
-    <div class="cards-container" v-if="activitiesData.length > 0 && !isActivitiesFetching">
-      <ActivityComponent
-        v-for="activity in activitiesData"
-        :key="activity.id"
-        :id="activity.id"
-        :mainPhotoRef="activity.mainPhotoRef"
-        :name="activity.name"
-        :cityAdmin="activity.cityAdmin"
-        :cityName="activity.cityName"
-        :streetName="activity.streetName"
-        :houseNumber="activity.houseNumber"
-        :category="activity.category"
-        :activityDates="activity.activityDates"
+    <div v-if="activitiesData.length > 0 && !isActivitiesFetching">
+      <ActivityCardsCarousel
+        :activitiesData="activitiesData"
+        v-if="showCardsInCarousel"
       />
+      <div
+        class="cards-container"
+        v-else
+      >
+        <ActivityComponent
+            v-for="activity in activitiesData"
+            :key="activity.id"
+            :id="activity.id"
+            :mainPhotoRef="activity.mainPhotoRef"
+            :name="activity.name"
+            :cityAdmin="activity.cityAdmin"
+            :cityName="activity.cityName"
+            :streetName="activity.streetName"
+            :houseNumber="activity.houseNumber"
+            :category="activity.category"
+            :activityDates="activity.activityDates"
+        />
+      </div>
     </div>
     <div v-else-if="isActivitiesFetching">
       <PageLoaderComponent/>
@@ -113,8 +125,7 @@ onBeforeMount(async () => {
 
 <style scoped>
 .other-activities-title{
-  margin-top: 5px;
-  margin-bottom: -12px;
+  margin-bottom: 12px;
   display: flex;
   justify-content: center;
 }

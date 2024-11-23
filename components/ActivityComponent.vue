@@ -143,6 +143,7 @@ onBeforeMount(async () => {
 
 <style scoped>
 .card{
+  width: 250px;
   border-radius: 12px;
   border: 2px solid darkgrey;
   padding-bottom: 2px;
@@ -252,8 +253,3 @@ onBeforeMount(async () => {
   justify-content: space-between;
 }
 </style>
-<!--// async function addSneakerToCart(){-->
-<!--//   // todo: add onAuthStateChanged-->
-<!--//   // todo по кліку перевіряти чи користувач авторизований (якщо ні перенаправлення на сторінку авторизації і авторизація)-->
-<!--//   // далі, прив'язати посилання на товар до документу користувача (додати товар до кошика)-->
-<!--// }-->

@@ -1,14 +1,18 @@
-<!-- todo: add propsWithDefaults: width, height: 20px  -->
+<script setup lang="ts">
+interface Props {
+  width: string,
+  height: string,
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  width: '20px',
+  height: '20px',
+})
+</script>
+
 <template>
   <span class="loader" :style="{width: props.width, height: props.height}"></span>
 </template>
-
-<script setup lang="ts">
-const props = defineProps<{
-  width: string
-  height: string
-}>();
-</script>
 
 <style scoped>
 .loader {

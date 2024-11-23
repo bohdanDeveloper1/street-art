@@ -48,21 +48,28 @@ app: {
  css: ['@/assets/css/base.css', "@/assets/css/main.css"],
  devtools: { enabled: true },
 
+// SMTP_FROM="Hypris <bogdanbobosko0@gmail.com>"
+//     smtp: {
+//         host: 'smtp-relay.brevo.com',
+//         port: 587,
+//         auth: {
+//             user: '8003b8001@smtp-brevo.com',
+//             pass: 'xsmtpsib-118b481f445c13387b0c2ef93e153638dbc9ab32ed53f09d0fc07cf753ddf089-RmyHkWpADQBxMNE9',
+//         },
+//     },
+
  modules: [
-  //  Vuetify
-  (_options, nuxt) => {
-    nuxt.hooks.hook('vite:extendConfig', (config) => {
-      // @ts-expect-error
-      config.plugins.push(vuetify({ autoImport: true }))
-    })
-  },
-  // leaflet maps connection
-  'nuxt3-leaflet',
-    // pinia
-  '@pinia/nuxt',
-    // vee-validate
-  '@vee-validate/nuxt',
-],
+ //vuetify
+ (_options, nuxt) => {
+   nuxt.hooks.hook('vite:extendConfig', (config) => {
+     // @ts-expect-error
+     config.plugins.push(vuetify({ autoImport: true }))
+   })
+ },
+ 'nuxt3-leaflet',
+ '@pinia/nuxt',
+ '@vee-validate/nuxt',
+ ],
 
  pinia: {
   storesDirs: ['./stores/**'],
@@ -74,13 +81,8 @@ app: {
       transformAssetUrls,
     },
   },
-  plugins: [
-     require('vite-plugin-checker')({
-         vueTsc: true,
-     }),
-  ],
 },
 
- ssr: true,
+ ssr: false,
  compatibilityDate: '2024-08-09',
 })

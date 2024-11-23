@@ -40,7 +40,7 @@ function changeComponentToLogin(){
 .auth-component-container{
   margin: 60px auto 0;
   width: 700px;
-  height: 400px;
+  min-height: 400px;
   background-color: white;
   border-radius: 15px;
   padding: 35px 15px 15px 15px;

@@ -30,11 +30,11 @@ const props = withDefaults(defineProps<Props>(), {
 </template>
 
 <style scoped lang="scss">
-  svg{
-    &:hover{
-      path{
-        fill: black;
-      }
-    }
-  }
+  //svg{
+  //  &:hover{
+  //    path{
+  //      fill: black;
+  //    }
+  //  }
+  //}
 </style>

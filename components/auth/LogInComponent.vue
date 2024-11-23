@@ -1,89 +1,64 @@
 <script setup lang="ts">
-import {useField, useForm} from "vee-validate";
 import {useAuthStore} from '~/stores/authStore/useAuthStore'
 
 const authStore = useAuthStore()
-const router = useRouter();
-
-// regex validation
-const uppercaseRegex = /[A-Z]/; // Велика літера
-const lowercaseRegex = /[a-z]/; // Мала літера
-const digitRegex = /\d/; // Цифра
-
-// validation rules
-const {handleSubmit} = useForm({
-  validationSchema: {
-    email (value) {
-      if (/.+@.+\..+/.test(value)) return true
-
-      return 'Please enter valid email.'
-    },
-    password(value) {
-      if (value?.length < 8 || !uppercaseRegex.test(value) || !lowercaseRegex.test(value) || !digitRegex.test(value)){
-        return 'Password must have: uppercase letter, lowercase letter, one digit, min 8 characters';
-      }
-
-      return true;
-    }
-  },
+onMounted(() => {
+  authStore.loginErrorMessage = ''
 })
-const email: any = useField('email');
-const password: any = useField('password');
-const isLoading = ref(false);
+const email = ref<string>('')
+const password = ref<string>('')
+const isLoading = ref(false)
 
-const submit = handleSubmit(async (values) => {
+async function onSubmit() {
+  if(!email.value || !password.value) {
+    authStore.loginErrorMessage = 'Please fill all fields'
+
+    return
+  }
+
   isLoading.value = true
-
-  await authStore.logIn(email.value.value, password.value.value)
+  await authStore.logIn(email.value, password.value)
   isLoading.value = false
-})
+}
 </script>
 
 <template>
   <div class="_container">
     <v-alert
-        v-if="authStore.isProblemWithLogIn"
-        title="Log in failed"
-        :text="authStore.loginErrorMessage"
-        type="error"
-        class="alert-error"
+      v-if="authStore.loginErrorMessage"
+      title="Log in failed"
+      :text="authStore.loginErrorMessage"
+      type="error"
+      class="alert-error"
     ></v-alert>
     <div class="form-container">
-      <form>
-        <!--  E-mail -->
+      <div>
         <div class="form-item-container">
           <v-text-field
-              v-model="email.value.value"
-              :error-messages="email.errorMessage.value"
+              v-model="email"
               label="E-mail"
               variant="solo"
               density="compact"
           ></v-text-field>
         </div>
-
-        <!--  Password -->
         <div class="form-item-container">
           <v-text-field
-              v-model="password.value.value"
-              :error-messages="password.errorMessage.value"
+              v-model="password"
               type="password"
               label="Password"
               variant="solo"
               density="compact"
           ></v-text-field>
         </div>
-
-        <!-- Submit -->
         <v-btn
             :loading="isLoading"
             class="me-4 submit-button"
             type="submit"
-            @click="submit"
+            @click="onSubmit"
         >
-
           log in
         </v-btn>
-      </form>
+      </div>
     </div>
   </div>
 </template>

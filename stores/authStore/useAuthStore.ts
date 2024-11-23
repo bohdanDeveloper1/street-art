@@ -17,12 +17,10 @@ export const useAuthStore = defineStore('auth', () => {
         name: '',
     })
     const isLoggedIn = ref<boolean>(false)
-    const isProblemWithLogIn = ref<boolean>(false)
     const loginErrorMessage = ref<string>('')
 
     async function logIn(email:string, password:string, ) {
         try{
-            // sign in
             const userCredential = await signInWithEmailAndPassword(auth, email, password)
             const user = userCredential.user
 
@@ -30,7 +28,6 @@ export const useAuthStore = defineStore('auth', () => {
                 // отримую роль користувача
                 const userData = await getUserData(user.uid)
                 if(!userData) {
-                    isProblemWithLogIn.value = true
                     loginErrorMessage.value = 'User does`t exist'
 
                     return
@@ -40,8 +37,6 @@ export const useAuthStore = defineStore('auth', () => {
                 userInfo.email = user.email || ''
                 userInfo.name = userData.name
                 userInfo.role = userData.role
-
-                isProblemWithLogIn.value = false
                 loginErrorMessage.value = ''
                 isLoggedIn.value = true
 
@@ -53,12 +48,10 @@ export const useAuthStore = defineStore('auth', () => {
             //  якщо користуач створив акаунт та не підтвердив мейл
             else if (user && !user.emailVerified) {
                 signOut(auth).then(() => {
-                    isProblemWithLogIn.value = true;
                     loginErrorMessage.value = 'Please verify your e-mail to log in';
                 })
             }else{
                 signOut(auth).then(() => {
-                    isProblemWithLogIn.value = true
                     loginErrorMessage.value = 'Invalid e-mail or password';
                 }).catch((error) => {
                     // An error happened.
@@ -67,7 +60,6 @@ export const useAuthStore = defineStore('auth', () => {
             }
         } catch (error){
             console.log(error);
-            isProblemWithLogIn.value = true
             loginErrorMessage.value = 'Invalid e-mail or password'
         }
     }
@@ -97,7 +89,6 @@ export const useAuthStore = defineStore('auth', () => {
 
     return {
         isLoggedIn,
-        isProblemWithLogIn,
         loginErrorMessage,
         userInfo,
         logIn,
