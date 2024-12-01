@@ -9,7 +9,13 @@ interface IDateList{
 }
 
 export const useDateListStore = defineStore('dateList', () => {
-    const datesList = reactive<IDateList[]>([]);
+    const datesList = reactive<IDateList[]>([])
+    const datesListLength = computed(() => {
+        return datesList.length
+    })
 
-    return {datesList};
+    return {
+        datesList,
+        datesListLength,
+    }
 });

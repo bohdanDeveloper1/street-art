@@ -14,7 +14,7 @@ import {useNuxtApp} from '#build/imports'
 export const useFirebaseRequestStore = defineStore('firebaseRequest', () => {
     const {$firestore}: any = useNuxtApp()
 
-    async function post(collectionName: string, data: object): Promise<string | unknown> {
+    async function post(collectionName: string, data: object): Promise<unknown> {
         try {
             const docRef = await addDoc(collection($firestore, collectionName), data)
             return docRef.id
@@ -24,32 +24,22 @@ export const useFirebaseRequestStore = defineStore('firebaseRequest', () => {
         }
     }
 
-    // async function get(collectionName: string): Promise<object[] | unknown> {
-    //     try {
-    //        return  await getDocs(collection($firestore, collectionName));
-    //     } catch (e) {
-    //         console.error("Error adding document: ", e)
-    //         return e
-    //     }
-    // }
-
     async function get(
         collectionName: string,
         whereConditions?: [string, FirebaseFirestore.WhereFilterOp, unknown][]
-    ): Promise<object[] | unknown> {
+    ): Promise<object[]> {
         try {
-            const colRef = collection($firestore, collectionName)
-            const q = whereConditions ? query(colRef, ...whereConditions.map(condition => where(...condition))) : colRef
+            const collectionRef = collection($firestore, collectionName)
+            const q = whereConditions ? query(collectionRef, ...whereConditions.map(condition => where(...condition))) : collectionRef
 
             const querySnapshot = await getDocs(q)
-            // Mapowanie wyników zapytania do tablicy obiektów
             return querySnapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
             }))
         } catch (e) {
-            console.error("Error fetching documents: ", e);
-            return e;
+            console.log("Error fetching documents: ", e)
+            throw e
         }
     }
 

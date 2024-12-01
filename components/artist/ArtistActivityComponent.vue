@@ -26,18 +26,17 @@
 </template>
 
 <script setup lang="ts">
-import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { getStorage, ref as storageRef, getDownloadURL  } from "firebase/storage";
 
 const props = defineProps<{
-  mainPhotoRef: String,
-  name: String,
-  cityAdmin: String,
-  cityName: String,
-  streetName: String,
-  houseNumber:  String,
-  category: String,
-  dateTimestamp: Number,
+  mainPhotoRef: string,
+  name: string,
+  cityAdmin: string,
+  cityName: string,
+  streetName: string,
+  houseNumber:  string,
+  category: string,
+  dateTimestamp: number,
 }>();
 const isFavorite = ref(false);
 const activityMainPhoto = ref(null);
@@ -56,7 +55,7 @@ async function removeCardFromFavorite(){
 
 const formatDate = (timestamp: number): string => {
   const date = new Date(timestamp);
-  const options = {
+  const options: object = {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -64,7 +63,7 @@ const formatDate = (timestamp: number): string => {
   };
 
   return date.toLocaleDateString('en-US', options);
-};
+}
 
 // Обчислювана властивість, яка містить отформатовану дату
 const formattedDate = computed(() => formatDate(props.dateTimestamp));

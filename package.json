@@ -31,6 +31,8 @@
     "vuefire": "^3.1.23"
   },
   "devDependencies": {
+    "nodemailer": "^6.9.16",
+    "nuxt-nodemailer": "^1.1.2",
     "nuxt3-leaflet": "^1.0.12",
     "sass": "^1.78.0",
     "typescript": "^5.6.3",

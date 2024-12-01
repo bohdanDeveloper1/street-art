@@ -85,6 +85,7 @@ export const useAuthStore = defineStore('auth', () => {
 
         await signOut(auth)
         addCommentStore.showAddCommentComponent = false
+        navigateTo('/userComponent')
     }
 
     return {

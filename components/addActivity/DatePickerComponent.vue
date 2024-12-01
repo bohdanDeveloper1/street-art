@@ -3,6 +3,11 @@ import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
 import {useDateListStore} from "~/stores/datesList";
 
+interface Emits {
+  (e: 'onChange'): void
+}
+
+const emit = defineEmits<Emits>()
 // date contain only start date and end date
 const date = ref<Date[] | null>([]);
 // datesList - зберігає всі дані про активність:  IDateList
@@ -14,7 +19,7 @@ const endDate = ref<Date | null>(null);
 const timeStart = ref();
 const timeEnd = ref();
 
-function getDatesBetween(start: Date, end: Date){
+function getDatesBetween(start: Date, end: Date) {
   const currentDate = new Date(start);
 
   while (currentDate <= end) {
@@ -99,32 +104,38 @@ watch(timeEnd, (newTimeEnd) =>{
 
 <template>
   <div>
+    <VueDatePicker
+      v-model="date"
+      :min-date="new Date()"
+      placeholder="Date start - date end"
+      :range="{ partialRange: true }"
+      :enable-time-picker="false"
+      @update:model-value="emit('onChange')"
+      @blur="emit('onChange')"
+    />
+    <div class="time-pickers-container" v-if="date != null && date.length > 0">
+      <div class="time-picker">
+        <VueDatePicker placeholder="Start for each date" v-model="timeStart" time-picker />
+      </div>
+      <div class="time-picker">
+        <VueDatePicker placeholder="End for each date" v-model="timeEnd" time-picker />
+      </div>
+    </div>
     <div>
-      <VueDatePicker v-model="date" :min-date="new Date()" placeholder="Date start - date end" :range="{ partialRange: true }" :enable-time-picker="false" />
-      <div class="time-pickers-container" v-if="date != null && date.length > 0">
-        <div class="time-picker">
-          <VueDatePicker placeholder="Start for each date" v-model="timeStart" time-picker />
-        </div>
-        <div class="time-picker">
-          <VueDatePicker placeholder="End for each date" v-model="timeEnd" time-picker />
-        </div>
-      </div>
-      <div>
-        <ul class="chosen-days">
-          <li v-for="item in datesList" :key="item.dateStart.toDateString()">
-            <add-activity-picked-day-component
-                @changeLocalTimeStart="changeLocalTimeStart"
-                @changeLocalTimeEnd="changeLocalTimeEnd"
-                @deleteActivityDay="deleteActivityDay"
-                :date-start="item.dateStart"
-                :date-end="item.dateEnd"
-                :time-start="item.timeStart"
-                :time-end="item.timeEnd"
-            >
-            </add-activity-picked-day-component>
-          </li>
-        </ul>
-      </div>
+      <ul class="chosen-days">
+        <li v-for="item in datesList" :key="item.dateStart.toDateString()">
+          <add-activity-picked-day-component
+              @changeLocalTimeStart="changeLocalTimeStart"
+              @changeLocalTimeEnd="changeLocalTimeEnd"
+              @deleteActivityDay="deleteActivityDay"
+              :date-start="item.dateStart"
+              :date-end="item.dateEnd"
+              :time-start="item.timeStart"
+              :time-end="item.timeEnd"
+          >
+          </add-activity-picked-day-component>
+        </li>
+      </ul>
     </div>
   </div>
 </template>

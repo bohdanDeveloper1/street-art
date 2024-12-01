@@ -3,7 +3,7 @@ import { useForm, useField } from 'vee-validate';
 import { useAddCommentStore } from "~/stores/addComment";
 import { collection, addDoc } from "firebase/firestore";
 
-const { $firestore } = useNuxtApp();
+const { $firestore }: any = useNuxtApp();
 const addCommentStore = useAddCommentStore();
 const props = defineProps<{
   userUid: string,

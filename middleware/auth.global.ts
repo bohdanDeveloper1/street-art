@@ -11,7 +11,7 @@ export default defineNuxtRouteMiddleware((to, from) => {
 
     if (to.path.startsWith('/admin')) {
         if (authStore.userInfo.role != 'artist' || !authStore.isLoggedIn) {
-            return navigateTo('/userComponent');
+            return navigateTo('/userComponent')
         }
     }
 })

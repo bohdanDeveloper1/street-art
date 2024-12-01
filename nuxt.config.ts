@@ -48,16 +48,6 @@ app: {
  css: ['@/assets/css/base.css', "@/assets/css/main.css"],
  devtools: { enabled: true },
 
-// SMTP_FROM="Hypris <bogdanbobosko0@gmail.com>"
-//     smtp: {
-//         host: 'smtp-relay.brevo.com',
-//         port: 587,
-//         auth: {
-//             user: '8003b8001@smtp-brevo.com',
-//             pass: 'xsmtpsib-118b481f445c13387b0c2ef93e153638dbc9ab32ed53f09d0fc07cf753ddf089-RmyHkWpADQBxMNE9',
-//         },
-//     },
-
  modules: [
  //vuetify
  (_options, nuxt) => {
@@ -69,7 +59,18 @@ app: {
  'nuxt3-leaflet',
  '@pinia/nuxt',
  '@vee-validate/nuxt',
+ 'nuxt-nodemailer'
  ],
+
+ nodemailer: {
+    from: '"Street Art" <bogdanbobosko0@gmail.com>',
+    host: 'smtp-relay.brevo.com',
+    port: 587,
+    auth: {
+        user: '8003b8001@smtp-brevo.com',
+        pass: 'xsmtpsib-118b481f445c13387b0c2ef93e153638dbc9ab32ed53f09d0fc07cf753ddf089-RmyHkWpADQBxMNE9',
+    },
+ },
 
  pinia: {
   storesDirs: ['./stores/**'],

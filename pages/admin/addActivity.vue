@@ -17,66 +17,68 @@
               <!--activityName-->
               <div class="form-item-container">
                 <v-text-field
-                    v-model="activityName.value.value"
+                    v-model="activityName"
                     :counter="50"
-                    :error-messages="activityName.errorMessage.value"
+                    :error-messages="activityNameErrorMessage"
                     label="Activity name"
                     variant="solo"
                     density="compact"
+                    @input="validateActivityName(false)"
+                    @blur="validateActivityName(true)"
                 ></v-text-field>
               </div>
-
               <!-- Categories selector  -->
               <div class="form-item-container">
                 <v-autocomplete
                     label="Category"
-                    v-model="activityCategory.value.value"
+                    v-model="activityCategory"
                     :items="artCategories"
-                    :error-messages="activityCategory.errorMessage.value"
+                    :error-messages="activityCategoryErrorMessage"
                     variant="solo"
                     density="compact"
+                    @update:model-value="validateActivityCategory(false)"
+                    @blur="validateActivityCategory(true)"
                 ></v-autocomplete>
               </div>
-
               <!--   Cities selector-->
               <div class="form-item-container">
                 <v-autocomplete
                     label="City"
-                    v-model="activityCity.value.value"
-                    @change="showCityOnMap"
+                    v-model="activityCity"
                     :items="citiesDataArray"
-                    :error-messages="activityCity.errorMessage.value"
+                    :error-messages="activityCityErrorMessage"
                     variant="solo"
                     density="compact"
+                    @update:model-value="onActivityCityChanged"
                 ></v-autocomplete>
               </div>
-
               <!--   Street input -->
               <div class="form-item-container">
                 <v-text-field
-                    v-model="activityStreet.value.value"
-                    @change="showCityAndStreetOnMap"
+                    v-model="activityStreet"
                     :counter="50"
-                    :error-messages="activityStreet.errorMessage.value"
+                    :error-messages="activityStreetErrorMessage"
                     label="Street"
                     variant="solo"
                     density="compact"
+                    @input="validateActivityStreet(false)"
+                    @blur="onActivityStreetChanged"
+                    @keyup.enter="onActivityStreetChanged"
                 ></v-text-field>
               </div>
-
               <!--   HouseNumber input -->
               <div class="form-item-container">
                 <v-text-field
-                    v-model="activityHouseNumber.value.value"
+                    v-model="activityHouseNumber"
+                    @input="validateActivityHouseNumber(false)"
+                    @blur="validateActivityHouseNumber(true)"
                     @change="showCityAndStreetAndHouseOnMap"
                     label="House number (optional)"
                     variant="solo"
-                    :counter="5"
                     density="compact"
                 ></v-text-field>
               </div>
             </div>
-
             <!-- Map component -->
             <div class="leafletMapContainer">
                <LMap class="leafletMap" style="height: 100%; width: 100%" :zoom="mapZoom" :center="[mapCenterLat, mapCenterLng]">
@@ -90,32 +92,32 @@
                </LMap>
             </div>
           </div>
-
           <!--  activityDateTime   -->
           <div class="form-datepicker-container">
-            <add-activity-date-picker-component></add-activity-date-picker-component>
-            <p class="my-error-message" v-if="activityDates.errorMessage.value && datesList.length === 0">{{activityDates.errorMessage.value}}</p>
+            <add-activity-date-picker-component
+              @onChange="triggerDatesListValidation = true"
+            />
+            <p class="my-error-message" v-if="activityDatesErrorMessage">{{ activityDatesErrorMessage }}</p>
           </div>
-
           <!-- activityDescription -->
           <div class="form-item-container">
             <v-textarea
-                label="Describe your activity"
-                v-model="activityDescription.value.value"
-                :error-messages="activityDescription.errorMessage.value"
-                variant="solo"
-                :counter="1500"
+              label="Describe your activity"
+              v-model="activityDescription"
+              :error-messages="activityDescriptionErrorMessage"
+              variant="solo"
+              :counter="1500"
+              @input="validateActivityDescription(false)"
+              @blur="validateActivityDescription(true)"
             >
             </v-textarea>
           </div>
-
           <!-- activityMainPhoto -->
           <div class="form-item-container">
             <v-file-input
                 label="Main photo to describe activity"
                 @input="setMainActivityImage"
-                v-model="activityMainPhoto.value.value"
-                :error-messages="activityMainPhoto.errorMessage.value"
+                :error-messages="activityMainPhotoFileErrorMessage"
                 accept="image/*"
                 variant="solo"
                 chips
@@ -123,14 +125,12 @@
                 show-size
             ></v-file-input>
           </div>
-
           <!-- activityAdditionalPhotos -->
           <div class="form-item-container">
             <v-file-input
-                label="Additional photos (max 5, optional)"
+                label="Additional photos (max 12, optional)"
                 @input="setAdditionalActivityImage"
-                v-model="activityAdditionalPhotos.value.value"
-                :error-messages="activityAdditionalPhotos.errorMessage.value"
+                :error-messages="activityAdditionalPhotoFilesErrorMessage"
                 accept="image/*"
                 variant="solo"
                 chips
@@ -139,12 +139,11 @@
                 density="compact"
             ></v-file-input>
           </div>
-
           <!-- submitBTN -->
           <v-btn
               class="me-4 submit-button"
               :loading="isActivityCreating"
-              @click="submit"
+              @click="addActivity"
           >
             create an activity
           </v-btn>
@@ -166,18 +165,16 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import '@vuepic/vue-datepicker/dist/main.css';
-import {useField, useForm} from 'vee-validate'
-import { collection, addDoc } from "firebase/firestore";
 import { getStorage, ref as storageRef, uploadBytes } from "firebase/storage";
 import {useDateListStore} from "~/stores/datesList";
+import {useFirebaseRequestStore} from '~/stores/api/useFirebaseRequestStore'
+import {useFirebaseFilesDataStore} from '~/stores/firebaseFilesDataStore/useFirebaseFilesDataStore'
+import type {IExtendedActivityData} from '~/types/IExtendedActivityData'
 
-// firebase
-const { $firestore } = useNuxtApp()
 const storage = getStorage()
-const userUidCookie = useCookie('userUidCookie')
-const userUid = userUidCookie.value
+const authStore = useAuthStore()
 
 // activity was added
 const ifActivityWasAdded = ref(false)
@@ -187,8 +184,8 @@ const mapZoom = ref(6);
 const mapCenterLat = ref(52.215933);
 const mapCenterLng = ref(19.134422);
 const showMarker = ref(false);
-const markerLat = ref();
-const markerLng = ref();
+const markerLat = ref<number>(0)
+const markerLng = ref<number>(0)
 const exceptionMessage = ref('');
 const exceptionTitle = ref('');
 
@@ -207,122 +204,225 @@ const citiesDataArray = computed(() =>{
 });
 
 // datePicker variables
-const dateListStore = useDateListStore();
-dateListStore.datesList.length = 0
-const datesList = dateListStore.datesList;
-const dateListStartEndArray = reactive([]);
-
-// activity photos
-const activityMainPhotoFile = ref();
-const activityAdditionalPhotoesFiles = ref([]);
-
+const dateListStore = useDateListStore()
+onMounted(() => {
+  dateListStore.datesList.length = 0
+})
+const {datesList, datesListLength} = storeToRefs(dateListStore)
+const dateListStartEndArray = reactive<{start: number, end: number}[]>([])
 const isActivityCreating = ref(false);
 
-// validation rules
-const {handleSubmit, handleReset} = useForm({
-  validationSchema: {
-    name (value) {
-      if (value?.length <= 2) return 'Name needs to be at least 3 characters.'
-      if (value?.length > 50) return 'Enter max 50 characters.'
+// validation
+const activityName = ref<string>('')
+const triggerActivityNameValidation = ref<boolean>(false)
+const activityNameErrorMessage = ref<string>('')
+function validateActivityName(startValidation?: boolean) {
+  if(startValidation) triggerActivityNameValidation.value = true
 
-      return true
-    },
-    dates(){
-      if (datesList.length > 0) return true
+  if(triggerActivityNameValidation.value) {
+    if (activityName.value.length <= 2) return activityNameErrorMessage.value = 'Name needs to be at least 3 characters'
+    if (activityName.value.length > 50) return activityNameErrorMessage.value = 'Name is too long'
 
-      return 'Select at least 1 date'
-    },
-    category (value) {
-      if (value) return true
-
-      return 'Select a category please'
-    },
-    city (value) {
-      if (value) return true
-
-      return 'Select a city please'
-    },
-    description (value) {
-      if (value?.length <= 2)  return 'Description must have at least 3 characters'
-      if (value?.length > 1500)  return 'Description must have max 1500 characters'
-
-      return true
-    },
-    mainPhoto (value) {
-      if (value) return true
-
-      return 'Select a photo please'
-    },
-    additionalPhotos (value) {
-      if (!value || value?.length <= 5) return true
-
-      return 'Max number of photos is 5'
-    },
-    street (value){
-      if(value?.length >= 3 && value?.length <= 50) return true;
-
-      return 'Please enter valid street'
-    },
-    houseNumber (value) {
-      if(value?.length < 6) return true;
-
-      return 'Max house number length is 5'
-    }
-  },
-})
-const activityName = useField('name');
-const activityDates = useField('dates');
-const activityCategory = useField('category');
-const activityCity = useField('city');
-const activityDescription = useField('description');
-const activityMainPhoto = useField('mainPhoto');
-const activityAdditionalPhotos = useField('additionalPhotos');
-const activityStreet = useField('street');
-const activityHouseNumber = useField('houseNumber');
-
-const submit = handleSubmit(async () => {
-  isActivityCreating.value = true
-  await addActivity()
-});
-
-async function addActivity() {
-  const activityCityData = await getActivityCityData();
-
-  // send photos to Storage
-  const uniqueKey  = new Date();
-  const mainPhotoRef = await addMainActivityPhoto(uniqueKey);
-  const arrayOfAdditionalPhotosRefs = await addAdditionalActivityPhotos(uniqueKey);
-  if(!processDateList()) return;
-
-  // send data to Firebase
-  await addDoc(collection($firestore, "activities"), {
-    artistUid: userUid,
-    name: activityName.value.value.trim(),
-    activityDates: dateListStartEndArray,
-    activityEnd: dateListStartEndArray[dateListStartEndArray.length - 1].end,
-    category: activityCategory.value.value,
-    // city coordinates
-    cityName: activityCityData.name,
-    cityAdmin: activityCityData.admin_name,
-    coordinatesLat: markerLat.value,
-    coordinatesLng: markerLng.value,
-    // street and house info
-    streetName: activityStreet.value.value.trim(),
-    houseNumber: activityHouseNumber.value.value !== undefined && activityHouseNumber.value.value !== '' ? activityHouseNumber.value.value : null,
-    description: activityDescription.value.value.trim(),
-    mainPhotoRef: mainPhotoRef,
-    additionalPhotosRefs: arrayOfAdditionalPhotosRefs,
-  });
-
-  isActivityCreating.value = false
-  ifActivityWasAdded.value = true;
+    return activityNameErrorMessage.value = ''
+  }
 }
 
-function processDateList() {
+const activityCategory = ref<string>('')
+const triggerActivityCategoryValidation = ref<boolean>(false)
+const activityCategoryErrorMessage = ref<string>('')
+function validateActivityCategory(startValidation?: boolean) {
+  if(startValidation) triggerActivityCategoryValidation.value = true
+
+  if(triggerActivityCategoryValidation.value) {
+    if (!activityCategory.value) return activityCategoryErrorMessage.value = 'Select a category'
+
+    return activityCategoryErrorMessage.value = ''
+  }
+}
+
+const triggerDatesListValidation = ref<boolean>(false)
+const activityDatesErrorMessage = computed(() => {
+  if(triggerDatesListValidation.value && !datesListLength.value) return 'Choose at least 1 date'
+
+  return ''
+})
+
+const activityCity = ref<string>('')
+const triggerActivityCityValidation = ref<boolean>(false)
+const activityCityErrorMessage = ref<string>('')
+function validateActivityCity(startValidation?: boolean) {
+  if(startValidation) triggerActivityCityValidation.value = true
+
+  if(triggerActivityCityValidation.value) {
+    if (!activityCity.value) return activityCityErrorMessage.value = 'Select a city'
+
+    return activityCityErrorMessage.value = ''
+  }
+}
+
+const activityStreet = ref<string>('')
+const triggerActivityStreetValidation = ref<boolean>(false)
+const activityStreetErrorMessage = ref<string>('')
+function validateActivityStreet(startValidation?: boolean) {
+  if(startValidation) triggerActivityStreetValidation.value = true
+
+  if(triggerActivityStreetValidation.value) {
+    if (activityStreet.value.length <= 2) return activityStreetErrorMessage.value = 'Invalid street name'
+    return activityStreetErrorMessage.value = ''
+  }
+}
+
+async function onActivityCityChanged() {
+  validateActivityCity(true)
+
+  if(!activityCityErrorMessage.value) {
+    await showCityOnMap()
+  }
+}
+
+let lastActivityStreetValue = ''
+async function onActivityStreetChanged() {
+  validateActivityStreet(true)
+  if (activityStreetErrorMessage.value || lastActivityStreetValue === activityStreet.value) return
+
+  lastActivityStreetValue = activityStreet.value
+  await showCityAndStreetOnMap()
+}
+
+const activityDescription = ref<string>('')
+const triggerActivityDescriptionValidation = ref<boolean>(false)
+const activityDescriptionErrorMessage = ref<string>('')
+function validateActivityDescription(startValidation?: boolean) {
+  if(startValidation) triggerActivityDescriptionValidation.value = true
+
+  if(triggerActivityDescriptionValidation.value) {
+    if (activityDescription.value.length <= 2) return activityDescriptionErrorMessage.value = 'Description needs to be at least 3 characters'
+    if (activityDescription.value.length > 1500) return activityDescriptionErrorMessage.value = 'Description is too long'
+
+    return activityDescriptionErrorMessage.value = ''
+  }
+}
+
+const activityMainPhotoFile = ref();
+const triggerActivityMainPhotoFileValidation = ref<boolean>(false)
+const activityMainPhotoFileErrorMessage = ref<string>('')
+function validateActivityMainPhotoFile(startValidation?: boolean) {
+  if(startValidation) triggerActivityMainPhotoFileValidation.value = true
+
+  if(triggerActivityMainPhotoFileValidation.value) {
+    if (!activityMainPhotoFile.value) return activityMainPhotoFileErrorMessage.value = 'Select a photo'
+
+    return activityMainPhotoFileErrorMessage.value = ''
+  }
+}
+
+const activityAdditionalPhotoFiles = reactive([]);
+const triggerActivityAdditionalPhotoFiles = ref<boolean>(false)
+const activityAdditionalPhotoFilesErrorMessage = ref<string>('')
+function validateActivityAdditionalPhotoFiles(startValidation?: boolean) {
+  if(startValidation) triggerActivityAdditionalPhotoFiles.value = true
+
+  if(triggerActivityAdditionalPhotoFiles.value) {
+    if (activityAdditionalPhotoFiles.length > 12) return activityAdditionalPhotoFilesErrorMessage.value = 'Max number of photos is 12'
+
+    return activityAdditionalPhotoFilesErrorMessage.value = ''
+  }
+}
+
+const activityHouseNumber = ref<string>('')
+const triggerActivityHouseNumberValidation = ref<boolean>(false)
+const activityHouseNumberErrorMessage = ref<string>('')
+function validateActivityHouseNumber(startValidation?: boolean) {
+  if(startValidation) triggerActivityHouseNumberValidation.value = true
+
+  if(triggerActivityHouseNumberValidation.value) {
+    if (activityHouseNumber.value.length > 7) return activityHouseNumberErrorMessage.value = 'Enter valid house number'
+
+    return activityHouseNumberErrorMessage.value = ''
+  }
+}
+
+function validateForm(): boolean {
+  const formErrors: string[] = []
+
+  validateActivityName(true)
+  formErrors.push(activityNameErrorMessage.value)
+  validateActivityCategory(true)
+  formErrors.push(activityCategoryErrorMessage.value)
+  validateActivityCity(true)
+  formErrors.push(activityCityErrorMessage.value)
+  validateActivityStreet(true)
+  formErrors.push(activityStreetErrorMessage.value)
+  validateActivityHouseNumber(true)
+  formErrors.push(activityHouseNumberErrorMessage.value)
+  triggerDatesListValidation.value = true
+  formErrors.push(activityDatesErrorMessage.value)
+  validateActivityDescription(true)
+  formErrors.push(activityDescriptionErrorMessage.value)
+  validateActivityMainPhotoFile(true)
+  formErrors.push(activityMainPhotoFileErrorMessage.value)
+  validateActivityAdditionalPhotoFiles(true)
+  formErrors.push(activityAdditionalPhotoFilesErrorMessage.value)
+
+  for(let i = 0; i < formErrors.length; i++) {
+    if(formErrors[i]) return false
+  }
+
+  return true
+}
+
+const firebaseRequestStore = useFirebaseRequestStore()
+const firebaseFilesDataStore = useFirebaseFilesDataStore()
+async function addActivity() {
+  if(!validateForm()) return
+  if(!processDateList()) return
+  isActivityCreating.value = true
+
+  try{
+    const activityCityData = await getActivityCityData()
+    const mainPhotoRef: string[] = await firebaseFilesDataStore.postFiles(
+      'activityPhoto',
+      activityName.value,
+      activityMainPhotoFile.value
+    )
+    const additionalPhotoRefs: string[] = await firebaseFilesDataStore.postFiles(
+      'additionalPhoto',
+      activityName.value,
+      activityAdditionalPhotoFiles
+    )
+    const activityData = {
+      artistUid: authStore.userInfo.uid,
+      name: activityName.value.trim(),
+      activityDates: dateListStartEndArray,
+      activityEnd: dateListStartEndArray[dateListStartEndArray.length - 1].end,
+      category: activityCategory.value,
+      // city coordinates
+      cityName: activityCityData.name,
+      cityAdmin: activityCityData.admin_name,
+      coordinatesLat: markerLat.value,
+      coordinatesLng: markerLng.value,
+      // street and house info
+      streetName: activityStreet.value.trim(),
+      houseNumber: activityHouseNumber.value ? activityHouseNumber.value : null,
+      description: activityDescription.value.trim(),
+      mainPhotoRef: mainPhotoRef[0],
+      additionalPhotosRefs: additionalPhotoRefs,
+    }
+
+    await firebaseRequestStore.post('activities', activityData)
+    ifActivityWasAdded.value = true
+  } catch (error) {
+    console.log(error)
+  } finally {
+    isActivityCreating.value = false
+  }
+}
+
+function processDateList(): boolean {
   dateListStartEndArray.length = 0;
 
-  if (datesList.length > 0){
-    for(let i = 0; i < datesList.length; i++){
+  if (datesListLength.value){
+    for(let i = 0; i < datesListLength.value; i++){
       const startDate = datesList[i].dateStart;
       const endDate = datesList[i].dateEnd;
 
@@ -362,31 +462,6 @@ function processDateList() {
 }
 
 // todo: add to storage
-async function addMainActivityPhoto(uniqueKey) {
-  // Create a reference to 'images/activityPhoto ...'
-  const url =  'images/' + 'activityPhoto' + activityName.value.value.trim() + uniqueKey.toString();
-  const activityPhotoRef = storageRef(storage, url);
-  await uploadBytes(activityPhotoRef, activityMainPhotoFile.value);
-
-  return url
-}
-
-// todo: add to storage
-async function addAdditionalActivityPhotos(uniqueKey){
-  let urlsArray = [];
-
-  if(activityAdditionalPhotoesFiles.value.length > 0){
-    for(let i = 0; i < activityAdditionalPhotoesFiles.value.length; i++) {
-      const url = 'images/' + 'additionalPhoto' + i.toString() + activityName.value.value.trim() + uniqueKey.toString();
-      urlsArray.push(url);
-      const activityPhotoRef = storageRef(storage, url);
-      await uploadBytes(activityPhotoRef, activityAdditionalPhotoesFiles.value[i]);
-    }
-  }
-  return urlsArray;
-}
-
-// todo: add to storage
 async function getCitiesData(){
   // отримую дані від сервера
   const { data } = await useFetch('/api/citiesList');
@@ -403,8 +478,8 @@ async function getArtCategoriesList(){
 }
 
 // todo: add to storage
-function getActivityCityData(){
-  const cityData = activityCity.value.value;
+function getActivityCityData() {
+  const cityData = activityCity.value;
   const parts = cityData.split(", ");
 
   const cityName = parts[0];
@@ -415,13 +490,18 @@ function getActivityCityData(){
   });
 }
 
-function setMainActivityImage(event){
-  activityMainPhotoFile.value = event.target.files[0];
+// todo: add to storage
+function setMainActivityImage(event) {
+  if(event.target.files.length) {
+    activityMainPhotoFile.value = event.target.files[0]
+  }
 }
 
-function setAdditionalActivityImage(event){
-  if(event.target.files.length > 0 && event.target.files.length <= 5){
-    activityAdditionalPhotoesFiles.value = event.target.files;
+function setAdditionalActivityImage(event) {
+  if(event.target.files.length && event.target.files.length <= 12) {
+    for(let i = 0; i < event.target.files.length; i++) {
+      activityAdditionalPhotoFiles.push(event.target.files[i])
+    }
   }
 }
 
@@ -431,12 +511,13 @@ function scrollToTop() {
 }
 
 // todo: add to storage
-async function showCityOnMap(){
+async function showCityOnMap() {
   try {
-    const cityData = activityCity.value.value;
+    const cityData = activityCity.value;
     // Розділення рядка за допомогою коми та пробілу
     const [city, district] = cityData.split(", ");
     // запит до API для отримання координат міста
+    console.log('cityData fetching')
     const response  = await fetch(`https://geocode.maps.co/search?q=${city}+${district}+Poland&api_key=659450539ff1f762862410sea796255`);
     const data = await response.json();
 
@@ -447,8 +528,8 @@ async function showCityOnMap(){
       mapCenterLat.value = Number(activityCoordinates.lat);
       mapCenterLng.value = Number(activityCoordinates.lon);
       mapZoom.value = 12;
-      activityStreet.value.value = '';
-      activityHouseNumber.value.value = '';
+      activityStreet.value = '';
+      activityHouseNumber.value = '';
     }
   } catch (error) {
     // Обробка помилок, наприклад, у випадку невдалих запитів до API
@@ -457,17 +538,18 @@ async function showCityOnMap(){
 }
 
 // todo: add to storage
-async function showCityAndStreetOnMap(){
-  if(activityCity.value.value !== undefined && activityCity.value.value !== ''){
+async function showCityAndStreetOnMap() {
+  if(activityCity.value){
     try {
-      const cityData = activityCity.value.value;
+      const cityData = activityCity.value;
       const [city, district] = cityData.split(", ");
       // запит до API для отримання координат міста та вулиці
-      const response  = await fetch(`https://geocode.maps.co/search?q=${activityStreet.value.value.trim()}+${city}+${district}+Poland&api_key=659450539ff1f762862410sea796255`);
+      console.log('fetching CityAndStreet data')
+      const response  = await fetch(`https://geocode.maps.co/search?q=${activityStreet.value.trim()}+${city}+${district}+Poland&api_key=659450539ff1f762862410sea796255`);
       const data = await response.json();
 
       // Якщо результати є, беремо перший результат
-      if (data.length > 0) {
+      if (data.length) {
         const activityCoordinates = data[0];
 
         mapCenterLat.value = Number(activityCoordinates.lat);
@@ -477,24 +559,24 @@ async function showCityAndStreetOnMap(){
         showMarker.value = true;
         mapZoom.value = 17;
 
-        activityHouseNumber.value.value = '';
+        activityHouseNumber.value = '';
         exceptionTitle.value = '';
         exceptionMessage.value = '';
       }else{ // якщо не знайдено координати
-        exceptionTitle.value = `No such street in ${activityCity.value.value}`;
+        exceptionTitle.value = `No such street in ${activityCity.value}`;
         exceptionMessage.value = `Please enter valid street name.`;
         scrollToTop();
       }
     } catch (error) {
       // Обробка помилок, наприклад, у випадку невдалих запитів до API
       console.log('Error during fetching data for mapCenter from geocode.maps API:', error);
-      exceptionTitle.value = `No such street in ${activityCity.value.value}`;
+      exceptionTitle.value = `No such street in ${activityCity.value}`;
       exceptionMessage.value = `Please enter valid street name.`;
       scrollToTop();
     }
   }else{ // якщо не обрано місто
-    activityCity.value.value = '';
-    activityStreet.value.value = '';
+    activityCity.value = '';
+    activityStreet.value = '';
     exceptionTitle.value = `Unselected city`;
     exceptionMessage.value = 'Select city, then input street name';
     scrollToTop();
@@ -503,12 +585,12 @@ async function showCityAndStreetOnMap(){
 
 // todo: add to storage
 async function showCityAndStreetAndHouseOnMap(){
-  if(activityCity.value.value !== undefined && activityCity.value.value !== '' && activityStreet.value.value !== undefined && activityStreet.value.value !== ''){
+  if(activityCity.value !== undefined && activityCity.value !== '' && activityStreet.value !== undefined && activityStreet.value !== ''){
     try {
-      const cityData = activityCity.value.value;
+      const cityData = activityCity.value;
       const [city, district] = cityData.split(", ");
       // запит до API для отримання координат міста та вулиці
-      const response  = await fetch(`https://geocode.maps.co/search?street=${activityStreet.value.value.trim()}+${activityHouseNumber.value.value.trim()}&city=${city}&country=Poland&api_key=659450539ff1f762862410sea796255`);
+      const response  = await fetch(`https://geocode.maps.co/search?street=${activityStreet.value.trim()}+${activityHouseNumber.value.trim()}&city=${city}&country=Poland&api_key=659450539ff1f762862410sea796255`);
       const data = await response.json();
 
       // Якщо результати є, беремо перший результат
@@ -525,21 +607,21 @@ async function showCityAndStreetAndHouseOnMap(){
         exceptionTitle.value = '';
         exceptionMessage.value = '';
       }else{
-        exceptionTitle.value = `No such house number in ${activityCity.value.value}, ${activityStreet.value.value}`;
+        exceptionTitle.value = `No such house number in ${activityCity.value}, ${activityStreet.value}`;
         exceptionMessage.value = 'Please enter valid house number';
         scrollToTop();
       }
     } catch (error) {
       // Обробка помилок, наприклад, у випадку невдалих запитів до API
       console.log('Error during fetching data for mapCenter from geocode.maps API:', error);
-      exceptionTitle.value = `No such house number in ${activityCity.value.value}, ${activityStreet.value.value}`;
+      exceptionTitle.value = `No such house number in ${activityCity.value}, ${activityStreet.value}`;
       exceptionMessage.value = 'Please enter valid house number';
       scrollToTop();
     }
   }else{
-    activityCity.value.value = '';
-    activityStreet.value.value = '';
-    activityHouseNumber.value.value = '';
+    activityCity.value = '';
+    activityStreet.value = '';
+    activityHouseNumber.value = '';
     exceptionTitle.value = 'Unselected city or street';
     exceptionMessage.value = 'Please select city and street, then enter valid house number';
     scrollToTop();
@@ -551,8 +633,8 @@ async function updateDataAfterMarkerDragged(lat, lon){
   try {
     const response  = await fetch(`https://geocode.maps.co/reverse?lat=${lat}&lon=${lon}&api_key=659450539ff1f762862410sea796255`);
     const data = await response.json();
-    activityStreet.value.value = data.address.road;
-    activityHouseNumber.value.value = data.address.house_number ? data.address.house_number : "";
+    activityStreet.value = data.address.road;
+    activityHouseNumber.value = data.address.house_number ? data.address.house_number : "";
   } catch (error) {
     console.log('Error during dragging the marker:', error);
   }
