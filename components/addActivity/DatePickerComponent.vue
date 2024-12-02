@@ -2,6 +2,7 @@
 import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
 import {useDateListStore} from "~/stores/datesList";
+import type {IDateList} from '~/types/IDateList'
 
 interface Emits {
   (e: 'onChange'): void
@@ -9,11 +10,11 @@ interface Emits {
 
 const emit = defineEmits<Emits>()
 // date contain only start date and end date
-const date = ref<Date[] | null>([]);
+const date = ref<Date[] | null>(null);
 const dateListStore = useDateListStore();
 const startDate = ref<Date | null>(null);
 const endDate = ref<Date | null>(null);
-// time variables
+// global timeStart for each day of activity
 const timeStart = ref();
 const timeEnd = ref();
 
@@ -39,7 +40,8 @@ function deleteActivityDay(dateStart: Date, dateEnd: Date, timeStart: object | n
   }
 }
 
-function changeLocalTimeStart(dateStart: Date, dateEnd: Date, newLocalTimeStart: object) {
+// changeLocalTimeStart - change timeStart for one day
+function changeLocalTimeStart(dateStart: Date, dateEnd: Date, newLocalTimeStart: IDateList['timeStart']) {
   dateListStore.datesList.forEach((item) => {
     if(item.dateStart === dateStart && item.dateEnd === dateEnd){
       item.timeStart = newLocalTimeStart;
@@ -47,7 +49,7 @@ function changeLocalTimeStart(dateStart: Date, dateEnd: Date, newLocalTimeStart:
   })
 }
 
-function changeLocalTimeEnd(dateStart: Date, dateEnd: Date, newLocalTimeEnd: object) {
+function changeLocalTimeEnd(dateStart: Date, dateEnd: Date, newLocalTimeEnd: IDateList['timeEnd']) {
   dateListStore.datesList.forEach((item) => {
     if(item.dateStart === dateStart && item.dateEnd === dateEnd){
       item.timeEnd = newLocalTimeEnd;
@@ -111,7 +113,7 @@ watch(timeEnd, (newTimeEnd) =>{
       @update:model-value="emit('onChange')"
       @blur="emit('onChange')"
     />
-    <div class="time-pickers-container" v-if="date">
+    <div class="time-pickers-container" v-if="date && date?.length">
       <div class="time-picker">
         <VueDatePicker placeholder="Start for each date" v-model="timeStart" time-picker />
       </div>
@@ -130,21 +132,32 @@ watch(timeEnd, (newTimeEnd) =>{
               :date-end="item.dateEnd"
               :time-start="item.timeStart"
               :time-end="item.timeEnd"
-          >
-          </add-activity-picked-day-component>
+          />
         </li>
       </ul>
     </div>
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .chosen-days{
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 24px;
   padding: 0;
 }
 
+@media (max-width: 890px) {
+  .chosen-days{
+    flex-wrap: nowrap;
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
 .time-pickers-container{
-  margin: 8px 0 16px 0;
+  margin: 16px 0;
   display: flex;
   justify-content: space-between;
 }

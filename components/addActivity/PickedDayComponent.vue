@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import VueDatePicker from "@vuepic/vue-datepicker";
 import {useDateListStore} from "~/stores/datesList";
+import SvgComponent from '~/components/ui/SvgComponent.vue'
+import type {IDateList} from '~/types/IDateList'
 
 const props = defineProps<{
   dateStart: Date,
   dateEnd: Date,
-  timeStart: object | null,
-  timeEnd: object | null,
+  timeStart: IDateList['timeStart'] | null,
+  timeEnd: IDateList['timeEnd'] | null,
 }>();
 const dateListStore = useDateListStore();
 const datesList = dateListStore.datesList;
@@ -14,9 +16,9 @@ const localTimeStart = ref();
 const localTimeEnd = ref();
 // emits
 const emit = defineEmits<{
-  (e: 'changeLocalTimeStart', dateStart: Date, dateEnd: Date, newLocalTimeStart: object): void;
-  (e: 'changeLocalTimeEnd', dateStart: Date, dateEnd: Date, newLocalTimeStart: object ): void;
-  (e: 'deleteActivityDay',  dateStart: Date, dateEnd: Date, timeStart: object | null, timeEnd: object | null ): void;
+  (e: 'changeLocalTimeStart', dateStart: Date, dateEnd: Date, newLocalTimeStart: IDateList['timeStart']): void;
+  (e: 'changeLocalTimeEnd', dateStart: Date, dateEnd: Date, newLocalTimeStart: IDateList['timeEnd'] ): void;
+  (e: 'deleteActivityDay',  dateStart: Date, dateEnd: Date, timeStart: IDateList['timeStart'] | null, timeEnd: IDateList['timeEnd'] | null ): void;
 }>()
 
 function deleteActivityDay(){
@@ -69,48 +71,62 @@ watch(localTimeEnd, (newLocalTimeEnd) => {
   <div class="chosen-day roboto-light">
     <div class="card-content">
       <div class="time-pickers">
-        <div class="time-picker time-picker-start">
-          {{props.dateStart.toDateString()}}
+        <div class="time-picker">
+          <div class="picked-day">
+            {{props.dateStart.toDateString()}}
+          </div>
           <VueDatePicker placeholder="Start" v-model="localTimeStart" time-picker />
         </div>
         <div class="time-picker">
-          {{props.dateEnd.toDateString()}}
+          <div class="picked-day">
+            {{props.dateEnd.toDateString()}}
+          </div>
           <VueDatePicker placeholder="End" v-model="localTimeEnd" time-picker />
         </div>
       </div>
     </div>
-    <div class="close-icon" @click="deleteActivityDay">
-      <svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" viewBox="0 0 24 24">
-        <path fill="gray" d="m8.382 17.025l-1.407-1.4L10.593 12L6.975 8.4L8.382 7L12 10.615L15.593 7L17 8.4L13.382 12L17 15.625l-1.407 1.4L12 13.41z"></path>
-      </svg>
-    </div>
+    <SvgComponent
+      class="close-icon"
+      svg-name="m8.382 17.025l-1.407-1.4L10.593 12L6.975 8.4L8.382 7L12 10.615L15.593 7L17 8.4L13.382 12L17 15.625l-1.407 1.4L12 13.41z"
+      @click="deleteActivityDay"
+    />
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .chosen-day{
   position: relative;
-  margin-bottom: 8px;
   padding: 16px 8px;
   border: 1px solid lightgrey;
   border-radius: 4px;
+  background: white;
 }
 
 .close-icon{
   position: absolute;
-  top: 16px;
+  top: 8px;
   right: 8px;
+
+  &:hover{
+    :deep(path) {
+      fill: black;
+    }
+  }
 }
 
 .time-pickers{
   display: flex;
+  gap: 24px;
 }
 
 .time-picker{
-  max-width: 160px;
-}
+  max-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 
-.time-picker-start{
-  margin-right: 12px;
+  .picked-day{
+    font-weight: 400;
+  }
 }
 </style>
