@@ -1,5 +1,8 @@
+import type {ICityData} from '~/types/ICityData'
+
 export default defineEventHandler(() => {
-    const sortedCitiesListData: any = [
+
+    const sortedCitiesListData: ICityData[]  = [
             {
                 "name": "Aleksandrowice",
                 "lat": "49.8144",
@@ -1104,7 +1107,7 @@ export default defineEventHandler(() => {
                 "lng": "20.4333",
                 "admin_name": "Mazowieckie"
             }
-        ];
+        ]
 
     return {
         sortedCitiesListData

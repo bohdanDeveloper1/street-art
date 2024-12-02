@@ -2,8 +2,9 @@
 import type {IActivityData} from '~/types/IActivityData'
 import ActivityComponent from '~/components/ActivityComponent.vue'
 import PageLoaderComponent from '~/components/pageLoaderComponent.vue'
-import {useFirebaseRequestStore} from '~/stores/api/useFirebaseRequestStore'
+import {useActivityApiStore} from '~/stores/api/useActivityApiStore'
 import ActivityCardsCarousel from '~/components/ui/ActivityCardsCarousel.vue'
+import type {IExtendedActivityData} from '~/types/IExtendedActivityData'
 
 interface Props {
   cityName?: string
@@ -21,7 +22,7 @@ const props = withDefaults(defineProps<Props>(), {
   showCardsInCarousel: false,
 })
 const activitiesData = reactive<IActivityData[]>([])
-const requestStore = useFirebaseRequestStore()
+const activityApiStore = useActivityApiStore()
 const isActivitiesFetching = ref<boolean>(false)
 
 function makeWhereConditions() {
@@ -42,12 +43,12 @@ function makeWhereConditions() {
 }
 
 async function getActivities(whereConditions?: [string, FirebaseFirestore.WhereFilterOp, unknown][]): Promise<void> {
-  let activities: object[] | unknown
+  let activities: IExtendedActivityData[]
 
   if(whereConditions) {
-    activities = await requestStore.get("activities", whereConditions)
+    activities = await activityApiStore.get("activities", whereConditions)
   } else {
-    activities = await requestStore.get("activities")
+    activities = await activityApiStore.get("activities")
   }
 
   if(activities.length) {
@@ -83,7 +84,7 @@ onBeforeMount(async () => {
 <template>
   <div class="_container">
     <h2 class="other-activities-title" v-if="cityName && activitiesData.length > 0">Other activities in {{props.cityName}}</h2>
-    <div v-if="activitiesData.length > 0 && !isActivitiesFetching">
+    <div v-if="activitiesData.length && !isActivitiesFetching">
       <ActivityCardsCarousel
         :activitiesData="activitiesData"
         v-if="showCardsInCarousel"

@@ -1,4 +1,4 @@
-import {ISendEmailData} from '~/server/api/mailer/types/ISendEmailData'
+import type {ISendEmailData} from '~/server/api/mailer/types/ISendEmailData'
 import {sendEmail} from '~/server/app/services/email/emailService'
 
 export default defineEventHandler(async (event) => {

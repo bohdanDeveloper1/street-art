@@ -10,9 +10,7 @@ interface Emits {
 const emit = defineEmits<Emits>()
 // date contain only start date and end date
 const date = ref<Date[] | null>([]);
-// datesList - зберігає всі дані про активність:  IDateList
 const dateListStore = useDateListStore();
-const datesList = dateListStore.datesList;
 const startDate = ref<Date | null>(null);
 const endDate = ref<Date | null>(null);
 // time variables
@@ -23,7 +21,7 @@ function getDatesBetween(start: Date, end: Date) {
   const currentDate = new Date(start);
 
   while (currentDate <= end) {
-    datesList.push({
+    dateListStore.datesList.push({
       dateStart: new Date(currentDate),
       dateEnd: new Date(currentDate),
       timeStart: null,
@@ -35,14 +33,14 @@ function getDatesBetween(start: Date, end: Date) {
 }
 
 function deleteActivityDay(dateStart: Date, dateEnd: Date, timeStart: object | null, timeEnd: object | null) {
-  const index = datesList.findIndex(item => (item.dateStart === dateStart && item.dateEnd === dateEnd && item.timeStart === timeStart && item.timeEnd === timeEnd));
+  const index = dateListStore.datesList.findIndex(item => (item.dateStart === dateStart && item.dateEnd === dateEnd && item.timeStart === timeStart && item.timeEnd === timeEnd));
   if (index !== -1) {
-    datesList.splice(index, 1);
+    dateListStore.datesList.splice(index, 1);
   }
 }
 
 function changeLocalTimeStart(dateStart: Date, dateEnd: Date, newLocalTimeStart: object) {
-  datesList.forEach((item) => {
+  dateListStore.datesList.forEach((item) => {
     if(item.dateStart === dateStart && item.dateEnd === dateEnd){
       item.timeStart = newLocalTimeStart;
     }
@@ -50,7 +48,7 @@ function changeLocalTimeStart(dateStart: Date, dateEnd: Date, newLocalTimeStart:
 }
 
 function changeLocalTimeEnd(dateStart: Date, dateEnd: Date, newLocalTimeEnd: object) {
-  datesList.forEach((item) => {
+  dateListStore.datesList.forEach((item) => {
     if(item.dateStart === dateStart && item.dateEnd === dateEnd){
       item.timeEnd = newLocalTimeEnd;
     }
@@ -65,7 +63,7 @@ watch(date, (newDate) => {
     timeStart.value = null;
     timeEnd.value = null;
 
-    datesList.length = 0;
+    dateListStore.datesList.length = 0;
 
     return;
   }
@@ -74,7 +72,7 @@ watch(date, (newDate) => {
   if(newDate[1]){
     endDate.value = newDate[1];
   }else{ // add only date and time start
-    datesList.push({
+    dateListStore.datesList.push({
       dateStart: new Date(newDate[0]),
       dateEnd: new Date(newDate[0]),
       timeStart: null,
@@ -89,14 +87,14 @@ watch(date, (newDate) => {
 
 // change timeStart for each day
 watch(timeStart, (newTimeStart) =>{
-  datesList.forEach((item) => {
+  dateListStore.datesList.forEach((item) => {
     item.timeStart = newTimeStart;
   })
 })
 
 // change timeEnd for each day
 watch(timeEnd, (newTimeEnd) =>{
-  datesList.forEach((item) => {
+  dateListStore.datesList.forEach((item) => {
     item.timeEnd = newTimeEnd;
   })
 })
@@ -113,7 +111,7 @@ watch(timeEnd, (newTimeEnd) =>{
       @update:model-value="emit('onChange')"
       @blur="emit('onChange')"
     />
-    <div class="time-pickers-container" v-if="date != null && date.length > 0">
+    <div class="time-pickers-container" v-if="date">
       <div class="time-picker">
         <VueDatePicker placeholder="Start for each date" v-model="timeStart" time-picker />
       </div>
@@ -123,7 +121,7 @@ watch(timeEnd, (newTimeEnd) =>{
     </div>
     <div>
       <ul class="chosen-days">
-        <li v-for="item in datesList" :key="item.dateStart.toDateString()">
+        <li v-for="item in dateListStore.datesList" :key="item.dateStart.toDateString()">
           <add-activity-picked-day-component
               @changeLocalTimeStart="changeLocalTimeStart"
               @changeLocalTimeEnd="changeLocalTimeEnd"

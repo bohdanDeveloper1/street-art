@@ -10,7 +10,7 @@
               type="error"
           ></v-alert>
         </div>
-        <form>
+        <div>
           <h2 class="form-header">Create an activity</h2>
           <div class="flex-container">
             <div class="left-group-container">
@@ -49,6 +49,7 @@
                     :error-messages="activityCityErrorMessage"
                     variant="solo"
                     density="compact"
+                    @blur="onActivityCityChanged"
                     @update:model-value="onActivityCityChanged"
                 ></v-autocomplete>
               </div>
@@ -116,7 +117,7 @@
           <div class="form-item-container">
             <v-file-input
                 label="Main photo to describe activity"
-                @input="setMainActivityImage"
+                v-model="activityMainPhotoFile"
                 :error-messages="activityMainPhotoFileErrorMessage"
                 accept="image/*"
                 variant="solo"
@@ -128,8 +129,8 @@
           <!-- activityAdditionalPhotos -->
           <div class="form-item-container">
             <v-file-input
-                label="Additional photos (max 12, optional)"
-                @input="setAdditionalActivityImage"
+                label="Additional photos (optional)"
+                v-model="activityAdditionalPhotoFiles"
                 :error-messages="activityAdditionalPhotoFilesErrorMessage"
                 accept="image/*"
                 variant="solo"
@@ -147,7 +148,7 @@
           >
             create an activity
           </v-btn>
-        </form>
+        </div>
       </div>
     </div>
     <div v-else class="activity-added-container">
@@ -156,27 +157,36 @@
       </div>
       <h2>Success!</h2>
       <h5>Activity was added</h5>
-      <v-btn
-          class="link-button"
-      >
-        <NuxtLink to="/admin/myActivities" class="link-item">go to my activities</NuxtLink>
-      </v-btn>
+      <div class="btn-container">
+        <v-btn
+          class="btn-add-one-more"
+          @click="addOneMoreActivity"
+        >
+          add one more
+        </v-btn>
+        <v-btn
+            class="link-button"
+        >
+          <NuxtLink to="/admin/myActivities" class="link-item">go to my activities</NuxtLink>
+        </v-btn>
+    </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import '@vuepic/vue-datepicker/dist/main.css';
-import { getStorage, ref as storageRef, uploadBytes } from "firebase/storage";
+import { getStorage } from "firebase/storage";
 import {useDateListStore} from "~/stores/datesList";
-import {useFirebaseRequestStore} from '~/stores/api/useFirebaseRequestStore'
+import {useActivityApiStore} from '~/stores/api/useActivityApiStore'
 import {useFirebaseFilesDataStore} from '~/stores/firebaseFilesDataStore/useFirebaseFilesDataStore'
+import {useAuthStore} from '~/stores/authStore/useAuthStore'
+import type {ICityData} from '~/types/ICityData'
 import type {IExtendedActivityData} from '~/types/IExtendedActivityData'
+import type {IDateList} from '~/types/IDateList'
 
 const storage = getStorage()
 const authStore = useAuthStore()
-
-// activity was added
 const ifActivityWasAdded = ref(false)
 
 // map configuration
@@ -190,29 +200,27 @@ const exceptionMessage = ref('');
 const exceptionTitle = ref('');
 
 // activity categories
-const artCategoriesList = await getArtCategoriesList();
+const artCategoriesList: {name: string}[] = await getArtCategoriesList()
 const artCategories = computed(() => {
-  return artCategoriesList.map(item => item.name);
+  return artCategoriesList.map(item => item.name)
 })
 
 // activity cities
-const citiesDataJSON = await getCitiesData()
-
-// citiesDataArray to autocomplete
-const citiesDataArray = computed(() =>{
+const citiesDataJSON: ICityData[] = await getCitiesData()
+const citiesDataArray = computed(() => {
   return citiesDataJSON.map(city => city.name + ', ' + city.admin_name)
-});
+})
 
 // datePicker variables
 const dateListStore = useDateListStore()
 onMounted(() => {
   dateListStore.datesList.length = 0
 })
-const {datesList, datesListLength} = storeToRefs(dateListStore)
+const {datesListLength} = storeToRefs(dateListStore)
 const dateListStartEndArray = reactive<{start: number, end: number}[]>([])
 const isActivityCreating = ref(false);
 
-// validation
+/////////////////////////////////////////////////////////  VALIDATION
 const activityName = ref<string>('')
 const triggerActivityNameValidation = ref<boolean>(false)
 const activityNameErrorMessage = ref<string>('')
@@ -272,11 +280,13 @@ function validateActivityStreet(startValidation?: boolean) {
   }
 }
 
+let lastSelectedCity: string
 async function onActivityCityChanged() {
   validateActivityCity(true)
 
-  if(!activityCityErrorMessage.value) {
+  if(!activityCityErrorMessage.value && lastSelectedCity !== activityCity.value) {
     await showCityOnMap()
+    lastSelectedCity = activityCity.value
   }
 }
 
@@ -303,7 +313,7 @@ function validateActivityDescription(startValidation?: boolean) {
   }
 }
 
-const activityMainPhotoFile = ref();
+const activityMainPhotoFile = ref()
 const triggerActivityMainPhotoFileValidation = ref<boolean>(false)
 const activityMainPhotoFileErrorMessage = ref<string>('')
 function validateActivityMainPhotoFile(startValidation?: boolean) {
@@ -316,14 +326,14 @@ function validateActivityMainPhotoFile(startValidation?: boolean) {
   }
 }
 
-const activityAdditionalPhotoFiles = reactive([]);
-const triggerActivityAdditionalPhotoFiles = ref<boolean>(false)
+const activityAdditionalPhotoFiles = ref()
+const triggerActivityAdditionalPhotoFilesValidation = ref<boolean>(false)
 const activityAdditionalPhotoFilesErrorMessage = ref<string>('')
 function validateActivityAdditionalPhotoFiles(startValidation?: boolean) {
-  if(startValidation) triggerActivityAdditionalPhotoFiles.value = true
+  if(startValidation) triggerActivityAdditionalPhotoFilesValidation.value = true
 
-  if(triggerActivityAdditionalPhotoFiles.value) {
-    if (activityAdditionalPhotoFiles.length > 12) return activityAdditionalPhotoFilesErrorMessage.value = 'Max number of photos is 12'
+  if(triggerActivityAdditionalPhotoFilesValidation.value) {
+    if (activityAdditionalPhotoFiles.value && activityAdditionalPhotoFiles.value.length > 12) return activityAdditionalPhotoFilesErrorMessage.value = 'Max number of photos is 12'
 
     return activityAdditionalPhotoFilesErrorMessage.value = ''
   }
@@ -371,7 +381,8 @@ function validateForm(): boolean {
   return true
 }
 
-const firebaseRequestStore = useFirebaseRequestStore()
+////////////////////////////////////////////////////////////      ADD ACTIVITY
+const activityApiStore = useActivityApiStore()
 const firebaseFilesDataStore = useFirebaseFilesDataStore()
 async function addActivity() {
   if(!validateForm()) return
@@ -379,18 +390,22 @@ async function addActivity() {
   isActivityCreating.value = true
 
   try{
-    const activityCityData = await getActivityCityData()
-    const mainPhotoRef: string[] = await firebaseFilesDataStore.postFiles(
+    const activityCityData: {name: string, admin_name: string} = getActivityCityData()
+    console.log('activityMainPhotoFile: ', activityMainPhotoFile.value)
+    const mainPhotoRef: string[] | null = await firebaseFilesDataStore.postFiles(
       'activityPhoto',
       activityName.value,
       activityMainPhotoFile.value
     )
-    const additionalPhotoRefs: string[] = await firebaseFilesDataStore.postFiles(
+    console.log('mainPhotoRef: ', mainPhotoRef)
+    console.log('additionalPhotoRefs: ', activityAdditionalPhotoFiles.value)
+    const additionalPhotoRefs: string[] | null = await firebaseFilesDataStore.postFiles(
       'additionalPhoto',
       activityName.value,
-      activityAdditionalPhotoFiles
+      activityAdditionalPhotoFiles.value
     )
-    const activityData = {
+    console.log('additionalPhotoRefs: ', additionalPhotoRefs)
+    const activityData: IExtendedActivityData = {
       artistUid: authStore.userInfo.uid,
       name: activityName.value.trim(),
       activityDates: dateListStartEndArray,
@@ -403,13 +418,12 @@ async function addActivity() {
       coordinatesLng: markerLng.value,
       // street and house info
       streetName: activityStreet.value.trim(),
-      houseNumber: activityHouseNumber.value ? activityHouseNumber.value : null,
+      houseNumber: activityHouseNumber.value ? activityHouseNumber.value : '',
       description: activityDescription.value.trim(),
-      mainPhotoRef: mainPhotoRef[0],
-      additionalPhotosRefs: additionalPhotoRefs,
+      mainPhotoRef: (mainPhotoRef && mainPhotoRef[0]) ? mainPhotoRef[0] : '',
+      additionalPhotosRefs: additionalPhotoRefs ? additionalPhotoRefs : null,
     }
-
-    await firebaseRequestStore.post('activities', activityData)
+    await activityApiStore.post('activities', activityData)
     ifActivityWasAdded.value = true
   } catch (error) {
     console.log(error)
@@ -418,27 +432,42 @@ async function addActivity() {
   }
 }
 
+function addOneMoreActivity() {
+  activityName.value = ''
+  triggerActivityNameValidation.value = false
+  dateListStore.datesList.length = 0
+  triggerDatesListValidation.value = false
+  dateListStartEndArray.length = 0
+  activityDescription.value = ''
+  triggerActivityDescriptionValidation.value = false
+  activityMainPhotoFile.value = null
+  triggerActivityMainPhotoFileValidation.value = false
+  activityAdditionalPhotoFiles.value = null
+  triggerActivityAdditionalPhotoFilesValidation.value = false
+
+  ifActivityWasAdded.value = false
+}
+
 function processDateList(): boolean {
   dateListStartEndArray.length = 0;
 
   if (datesListLength.value){
-    for(let i = 0; i < datesListLength.value; i++){
-      const startDate = datesList[i].dateStart;
-      const endDate = datesList[i].dateEnd;
-
-      const timeStart = datesList[i].timeStart;
-      const timeEnd = datesList[i].timeEnd;
+    for(let i = 0; i < datesListLength.value; i++) {
+      const startDate: Date = dateListStore.datesList[i].dateStart;
+      const endDate: Date = dateListStore.datesList[i].dateEnd;
+      const timeStart: IDateList['timeStart'] = dateListStore.datesList[i].timeStart;
+      const timeEnd: IDateList['timeEnd'] = dateListStore.datesList[i].timeEnd;
 
       if (timeStart && timeEnd) {
-        const startDateTime = startDate.setHours(timeStart.hours, timeStart.minutes, timeStart.seconds);
-        const endDateTime = endDate.setHours(timeEnd.hours, timeEnd.minutes, timeEnd.seconds);
+        const startDateTime: number = startDate.setHours(timeStart.hours, timeStart.minutes, timeStart.seconds)
+        const endDateTime: number = endDate.setHours(timeEnd.hours, timeEnd.minutes, timeEnd.seconds);
 
         dateListStartEndArray.push({
           start: startDateTime,
           end: endDateTime,
         });
       }else{
-        const unChosenTime = new Date(datesList[i].dateStart);
+        const unChosenTime = new Date(dateListStore.datesList[i].dateStart);
 
         exceptionTitle.value = `Unselected time start or time end`;
         exceptionMessage.value = `Please select timeStart and timeEnd for ${unChosenTime.toDateString()}`;
@@ -461,47 +490,38 @@ function processDateList(): boolean {
   return true;
 }
 
-// todo: add to storage
-async function getCitiesData(){
-  // отримую дані від сервера
-  const { data } = await useFetch('/api/citiesList');
-  // повертаю - тільки потрібний масив данних: citiesListData
-  return data.value.sortedCitiesListData;
-}
-
-// todo: add to storage
-async function getArtCategoriesList(){
-  // отримую дані від сервера
-  const { data } = await useFetch('/api/artCategoriesList');
-  // повертаю - тільки потрібний масив данних:
-  return data.value.artCategoriesList;
-}
-
-// todo: add to storage
-function getActivityCityData() {
-  const cityData = activityCity.value;
-  const parts = cityData.split(", ");
-
-  const cityName = parts[0];
-  const cityAdminName = parts[1];
-
-  return  citiesDataJSON.find(city => {
-    return city.name === cityName && city.admin_name === cityAdminName
-  });
-}
-
-// todo: add to storage
-function setMainActivityImage(event) {
-  if(event.target.files.length) {
-    activityMainPhotoFile.value = event.target.files[0]
+async function getCitiesData(): Promise<ICityData[]> {
+  try{
+    const {data} = await useFetch('/api/citiesList')
+    // @ts-ignore
+    return data.value.sortedCitiesListData
+  } catch (e) {
+    console.log(e)
+    throw e
   }
 }
 
-function setAdditionalActivityImage(event) {
-  if(event.target.files.length && event.target.files.length <= 12) {
-    for(let i = 0; i < event.target.files.length; i++) {
-      activityAdditionalPhotoFiles.push(event.target.files[i])
-    }
+async function getArtCategoriesList(): Promise<{name: string}[]> {
+  try{
+    const {data} = await useFetch('/api/artCategoriesList')
+    // @ts-ignore
+    return data.value.artCategoriesList
+  } catch (e) {
+    console.log(e)
+    throw e
+  }
+}
+
+function getActivityCityData(): {name: string, admin_name: string} {
+  const cityData = activityCity.value
+  const parts = cityData.split(", ")
+
+  const cityName = parts[0]
+  const cityAdminName = parts[1]
+
+  return {
+    name: cityName,
+    admin_name: cityAdminName
   }
 }
 
@@ -517,7 +537,6 @@ async function showCityOnMap() {
     // Розділення рядка за допомогою коми та пробілу
     const [city, district] = cityData.split(", ");
     // запит до API для отримання координат міста
-    console.log('cityData fetching')
     const response  = await fetch(`https://geocode.maps.co/search?q=${city}+${district}+Poland&api_key=659450539ff1f762862410sea796255`);
     const data = await response.json();
 
@@ -544,7 +563,6 @@ async function showCityAndStreetOnMap() {
       const cityData = activityCity.value;
       const [city, district] = cityData.split(", ");
       // запит до API для отримання координат міста та вулиці
-      console.log('fetching CityAndStreet data')
       const response  = await fetch(`https://geocode.maps.co/search?q=${activityStreet.value.trim()}+${city}+${district}+Poland&api_key=659450539ff1f762862410sea796255`);
       const data = await response.json();
 
@@ -629,9 +647,9 @@ async function showCityAndStreetAndHouseOnMap(){
 }
 
 // todo: add to storage
-async function updateDataAfterMarkerDragged(lat, lon){
+async function updateDataAfterMarkerDragged(lat: number, lon: number) {
   try {
-    const response  = await fetch(`https://geocode.maps.co/reverse?lat=${lat}&lon=${lon}&api_key=659450539ff1f762862410sea796255`);
+    const response  = await fetch(`https://geocode.maps.co/reverse?lat=${lat.toString()}&lon=${lon.toString()}&api_key=659450539ff1f762862410sea796255`);
     const data = await response.json();
     activityStreet.value = data.address.road;
     activityHouseNumber.value = data.address.house_number ? data.address.house_number : "";
@@ -641,17 +659,15 @@ async function updateDataAfterMarkerDragged(lat, lon){
 }
 
 // todo: add to storage
-const updateMarkerLatLng = async (event) => {
-  const updatedMarkerCoordinates = event.target.getLatLng();
+const updateMarkerLatLng = async (event: any) => {
+  const updatedMarkerCoordinates: {lat: number, lng: number} = event.target.getLatLng()
   markerLat.value = updatedMarkerCoordinates.lat;
   markerLng.value = updatedMarkerCoordinates.lng;
   await updateDataAfterMarkerDragged(updatedMarkerCoordinates.lat, updatedMarkerCoordinates.lng);
 }
-
-// todo: make handle form reset
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 /* form-container ------------------------------------------------------*/
 .form-container{
   margin: 24px auto 40px auto;
@@ -770,9 +786,18 @@ const updateMarkerLatLng = async (event) => {
   color: white;
 }
 
-.link-button{
-  margin-top: 25px;
-  background: #000;
+.btn-container{
+  display: flex;
+  gap: 12px;
+
+  .link-button{
+    margin-top: 18px;
+    background: #000;
+  }
+
+  .btn-add-one-more{
+    margin-top: 18px;
+  }
 }
 
 .link-item{

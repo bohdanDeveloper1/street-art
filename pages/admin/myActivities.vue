@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import {useAuthStore} from '~/stores/authStore/useAuthStore'
-import type {IUser} from '~/stores/authStore/types/IUser'
 import {storeToRefs} from 'pinia'
 
 const authStore = useAuthStore()
-const {userInfo}: IUser = storeToRefs(authStore)
+const {userInfo} = storeToRefs(authStore)
 </script>
 
 <template>

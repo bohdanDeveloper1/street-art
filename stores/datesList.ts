@@ -1,12 +1,6 @@
 import { defineStore } from 'pinia';
+import type {IDateList} from '~/types/IDateList'
 
-
-interface IDateList{
-    dateStart: Date,
-    dateEnd: Date,
-    timeStart: object | null,
-    timeEnd: object | null,
-}
 
 export const useDateListStore = defineStore('dateList', () => {
     const datesList = reactive<IDateList[]>([])

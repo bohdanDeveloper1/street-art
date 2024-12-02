@@ -1,4 +1,4 @@
-import {ISendEmailData} from '~/server/api/mailer/types/ISendEmailData'
+import type {ISendEmailData} from '~/server/api/mailer/types/ISendEmailData'
 
 export async function sendEmail (request: ISendEmailData) {
     const {sendMail} = useNodeMailer()

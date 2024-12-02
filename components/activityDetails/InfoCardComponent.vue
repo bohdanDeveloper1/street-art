@@ -82,6 +82,10 @@ const props = defineProps<Props>()
   margin-bottom: 8px;
 }
 
+.activity-dates{
+  width: 100%;
+}
+
 .card-dates-item{
   display: flex;
   margin-bottom: 8px;
@@ -91,6 +95,7 @@ const props = defineProps<Props>()
 .container-scrollable {
   cursor: pointer;
   max-height: 220px;
+  width: 100%;
   overflow: auto;
   scrollbar-width: none;
 

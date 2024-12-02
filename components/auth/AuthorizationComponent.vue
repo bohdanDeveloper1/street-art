@@ -2,11 +2,9 @@
 import { getAuth, createUserWithEmailAndPassword, sendEmailVerification  } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import {PasswordErrorType} from '~/components/auth/types/PasswordErrorType'
-import {DomEvent} from 'leaflet'
-import preventDefault = DomEvent.preventDefault
 
 const auth = getAuth();
-const { $firestore } = useNuxtApp();
+const { $firestore }: any = useNuxtApp();
 const isAccountCreatedSuccessfully = ref(false)
 
 const email = ref<string>('')
@@ -126,15 +124,15 @@ async function createAccount() {
     // Додаю користувача до бази даних
     await addUserToDataBase(user);
     isLoading.value = false;
-  } catch (error) {
+  } catch (e) {
     isProblemWithAccountCreating.value = true;
-    errorMessage.value = error.message;
+    errorMessage.value = e as string
     isLoading.value = false;
   }
 }
 
-async function addUserToDataBase(user) {
-  await setDoc(doc($firestore, "users", user.uid), {
+async function addUserToDataBase(user: any) {
+  await setDoc(doc($firestore, "users", user), {
     name: name.value,
     role: userRole.value,
   })

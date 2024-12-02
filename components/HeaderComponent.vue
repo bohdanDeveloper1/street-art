@@ -68,12 +68,11 @@
 import {useAuthStore} from '~/stores/authStore/useAuthStore'
 import {storeToRefs} from 'pinia'
 import { useRouter } from 'vue-router'
-import type {IUser} from '~/stores/authStore/types/IUser'
 import {getAuth, onAuthStateChanged} from 'firebase/auth'
 
 const auth = getAuth()
 const authStore = useAuthStore()
-const {userInfo}: IUser = storeToRefs(authStore)
+const {userInfo} = storeToRefs(authStore)
 
 async function logOut() {
   await authStore.logOut()

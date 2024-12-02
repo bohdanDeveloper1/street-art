@@ -1,5 +1,5 @@
 export interface IActivityData {
-    id: string
+    id?: string
     mainPhotoRef: string
     name: string
     cityAdmin: string

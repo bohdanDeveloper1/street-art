@@ -30,7 +30,7 @@ const userUid = ref<string>('');
 
 const activityData = reactive<IExtendedActivityData>({
     id: '',
-    additionalPhotosRefs: [],
+    additionalPhotosRefs: null,
     artistUid: '',
     category: '',
     cityAdmin: '',
@@ -43,6 +43,7 @@ const activityData = reactive<IExtendedActivityData>({
     mainPhotoRef: '',
     name: '',
     streetName: '',
+    activityEnd: 0,
 })
 const artistData = reactive<IArtistData>({
   name: '',
@@ -114,6 +115,7 @@ async function getActivityData() {
     activityData.mainPhotoRef = docSnap.data().mainPhotoRef
     activityData.name = docSnap.data().name
     activityData.streetName = docSnap.data().streetName
+    activityData.activityEnd = docSnap.data().activityEnd
 
     await getArtistData()
   } else {
@@ -140,8 +142,8 @@ async function getActivityPhotos() {
   }
 
   // get additional photo
-  if(activityData.additionalPhotosRefs.length){
-    for(let i = 0; i < activityData.additionalPhotosRefs.length; i++){
+  if(activityData.additionalPhotosRefs && activityData.additionalPhotosRefs?.length){
+    for(let i = 0; i < activityData.additionalPhotosRefs?.length; i++){
       let additionalPhoto: string = await getDownloadURL(storageRef(storage,  activityData.additionalPhotosRefs[i]));
       activityPhotos.push(additionalPhoto);
     }

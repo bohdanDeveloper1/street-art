@@ -7,7 +7,7 @@ const { $firestore }: any = useNuxtApp();
 const addCommentStore = useAddCommentStore();
 const props = defineProps<{
   userUid: string,
-  activityUid: string,
+  activityUid?: string,
   artistUid: string
 }>();
 const emit = defineEmits(['getComments', 'commentWasAdded']);

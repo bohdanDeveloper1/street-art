@@ -10,24 +10,25 @@ import {
     deleteDoc,
 } from 'firebase/firestore'
 import {useNuxtApp} from '#build/imports'
+import type {IExtendedActivityData} from '~/types/IExtendedActivityData'
 
-export const useFirebaseRequestStore = defineStore('firebaseRequest', () => {
+export const useActivityApiStore = defineStore('activityApi', () => {
     const {$firestore}: any = useNuxtApp()
 
-    async function post(collectionName: string, data: object): Promise<unknown> {
+    async function post(collectionName: string, data: object): Promise<string> {
         try {
             const docRef = await addDoc(collection($firestore, collectionName), data)
             return docRef.id
         } catch (e) {
             console.error("Error adding document: ", e)
-            return e
+            throw e
         }
     }
 
     async function get(
         collectionName: string,
         whereConditions?: [string, FirebaseFirestore.WhereFilterOp, unknown][]
-    ): Promise<object[]> {
+    ): Promise<IExtendedActivityData[]> {
         try {
             const collectionRef = collection($firestore, collectionName)
             const q = whereConditions ? query(collectionRef, ...whereConditions.map(condition => where(...condition))) : collectionRef
@@ -36,7 +37,7 @@ export const useFirebaseRequestStore = defineStore('firebaseRequest', () => {
             return querySnapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
-            }))
+            })) as IExtendedActivityData[]
         } catch (e) {
             console.log("Error fetching documents: ", e)
             throw e

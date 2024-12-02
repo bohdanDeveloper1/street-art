@@ -7,6 +7,7 @@ interface IDateList{
   end: string,
 }
 
+const storage = getStorage()
 const props = defineProps<IActivityData>()
 const router = useRouter()
 
@@ -57,13 +58,12 @@ async function removeCardFromFavorite(){
 }
 
 async function showActivityDetails(){
-  router.push(`/activityDetails/${props.id}`)
+  await router.push(`/activityDetails/${props.id}`)
 }
 
 onBeforeMount(async () => {
-  const storage = getStorage();
-  activityMainPhoto.value = await getDownloadURL(storageRef(storage, props.mainPhotoRef));
-});
+  activityMainPhoto.value = await getDownloadURL(storageRef(storage, props.mainPhotoRef))
+})
 </script>
 
 <template>
@@ -135,7 +135,7 @@ onBeforeMount(async () => {
     <v-skeleton-loader
         class="mx-auto border"
         width="250"
-        height="380"
+        height="400"
         type="image, article"
     ></v-skeleton-loader>
   </div>

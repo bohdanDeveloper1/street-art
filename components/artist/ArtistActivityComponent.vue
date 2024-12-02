@@ -39,7 +39,7 @@ const props = defineProps<{
   dateTimestamp: number,
 }>();
 const isFavorite = ref(false);
-const activityMainPhoto = ref(null);
+const activityMainPhoto = ref()
 
 async function addCardToFavorite(){
   // todo перевірити чи користувач залогований.
