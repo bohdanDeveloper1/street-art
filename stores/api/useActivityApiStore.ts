@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore'
 import {useNuxtApp} from '#build/imports'
 import type {IExtendedActivityData} from '~/types/IExtendedActivityData'
+import {orderBy} from '@firebase/firestore'
 
 export const useActivityApiStore = defineStore('activityApi', () => {
     const {$firestore}: any = useNuxtApp()
@@ -27,10 +28,12 @@ export const useActivityApiStore = defineStore('activityApi', () => {
 
     async function get(
         collectionName: string,
-        whereConditions?: [string, FirebaseFirestore.WhereFilterOp, unknown][]
+        whereConditions?: [string, FirebaseFirestore.WhereFilterOp, unknown][],
+        orderByField?: string
     ): Promise<IExtendedActivityData[]> {
         try {
             const collectionRef = collection($firestore, collectionName)
+            // todo: add: orderBy = 'activityEnd' to whereConditions
             const q = whereConditions ? query(collectionRef, ...whereConditions.map(condition => where(...condition))) : collectionRef
 
             const querySnapshot = await getDocs(q)

@@ -5,51 +5,56 @@ import PageLoaderComponent from '~/components/pageLoaderComponent.vue'
 import {useActivityApiStore} from '~/stores/api/useActivityApiStore'
 import ActivityCardsCarousel from '~/components/ui/ActivityCardsCarousel.vue'
 import type {IExtendedActivityData} from '~/types/IExtendedActivityData'
+import {useAuthStore} from '~/stores/authStore/useAuthStore'
+import {LocalStorageVariables} from '~/types/LocalStorageVariablesType'
+import {useRouter} from '#vue-router'
 
 interface Props {
   cityName?: string
   activityId?: string
   showArtistActivities?: boolean
-  artistUid?: string
   showCardsInCarousel?: boolean
 }
 
+const router = useRouter()
 const props = withDefaults(defineProps<Props>(), {
   cityName: '',
   activityId: '',
   showArtistActivities: false,
-  artistUid: '',
   showCardsInCarousel: false,
 })
 const activitiesData = reactive<IActivityData[]>([])
 const activityApiStore = useActivityApiStore()
 const isActivitiesFetching = ref<boolean>(false)
 
-function makeWhereConditions() {
+const authStore = useAuthStore()
+async function makeWhereConditions() {
   const whereConditions: [string, FirebaseFirestore.WhereFilterOp, unknown][] = []
-  whereConditions.push(["activityEnd", '>', new Date().getTime()])
-  // todo: add if() {whereConditions.push} if additional props related with activities filtration
+  //let orderBy: string
 
+  // get all activities where: activityEnd > new Date().getTime()
+  if(!props.showArtistActivities) {
+    whereConditions.push(["activityEnd", '>', new Date().getTime()])
+  }
+  // get activities for selected city
   if(props.cityName && props.activityId) {
     whereConditions.push(["cityName", '==', props.cityName])
   }
-
   // get only artist activities
-  if(props.showArtistActivities && props.artistUid) {
-    whereConditions.push(["artistUid", '==', props.artistUid])
+  if(props.showArtistActivities) {
+    const userUid = localStorage.getItem(LocalStorageVariables.UserUid)
+    if(!userUid) {
+      await router.push('/userComponent')
+    }
+    whereConditions.push(["artistUid", '==', userUid])
+    // todo: add: orderBy('activityEnd')
   }
 
   return whereConditions
 }
 
 async function getActivities(whereConditions?: [string, FirebaseFirestore.WhereFilterOp, unknown][]): Promise<void> {
-  let activities: IExtendedActivityData[]
-
-  if(whereConditions) {
-    activities = await activityApiStore.get("activities", whereConditions)
-  } else {
-    activities = await activityApiStore.get("activities")
-  }
+  let activities: IExtendedActivityData[] = await activityApiStore.get("activities", whereConditions)
 
   if(activities.length) {
     if(props.cityName && props.activityId) {
@@ -72,18 +77,17 @@ async function getActivities(whereConditions?: [string, FirebaseFirestore.WhereF
   }
 }
 
-onBeforeMount(async () => {
+onMounted(async () => {
   isActivitiesFetching.value = true
-  const whereConditions = makeWhereConditions()
+  const whereConditions = await makeWhereConditions()
   await getActivities(whereConditions)
-
   isActivitiesFetching.value = false
 })
 </script>
 
 <template>
   <div class="_container">
-    <h2 class="other-activities-title" v-if="cityName && activitiesData.length > 0">Other activities in {{props.cityName}}</h2>
+    <h2 class="other-activities-title" v-if="cityName && activitiesData.length">Other activities in {{props.cityName}}</h2>
     <div v-if="activitiesData.length && !isActivitiesFetching">
       <ActivityCardsCarousel
         :activitiesData="activitiesData"
@@ -108,23 +112,25 @@ onBeforeMount(async () => {
         />
       </div>
     </div>
-    <div v-else-if="isActivitiesFetching">
+    <div v-if="isActivitiesFetching">
       <PageLoaderComponent/>
     </div>
-    <div v-else-if="activitiesData.length === 0 && !isActivitiesFetching && showArtistActivities">
+    <div v-if="!activitiesData.length && !isActivitiesFetching && showArtistActivities && authStore.isLoggedIn">
       <div class="no-activities-container">
         <div class="no-activities-info">
           <h3>You have not activities yet.</h3>
         </div>
-        <v-btn>
-          Add your first activity
-        </v-btn>
+        <NuxtLink to="/admin/addActivity">
+          <v-btn>
+            Add your first activity
+          </v-btn>
+        </NuxtLink>
       </div>
     </div>
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .other-activities-title{
   margin-bottom: 12px;
   display: flex;
@@ -132,12 +138,18 @@ onBeforeMount(async () => {
 }
 
 .cards-container{
+  //padding: 24px 0;
+  //display: grid;
+  //justify-content: center;
+  //grid-template-columns: repeat(4, 250px);
+  //grid-column-gap: 36px;
+  //grid-row-gap: 40px;
+
   padding: 24px 0;
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  grid-template-columns: repeat(4, 250px);
-  grid-column-gap: 36px;
-  grid-row-gap: 40px;
+  gap: 36px;
 }
 
 .no-activities-container{

@@ -1,9 +1,5 @@
 <script setup lang="ts">
-import {useAuthStore} from '~/stores/authStore/useAuthStore'
-import {storeToRefs} from 'pinia'
-
-const authStore = useAuthStore()
-const {userInfo} = storeToRefs(authStore)
+import ActivitiesContainerComponent from '~/components/activitiesContainerComponent.vue'
 </script>
 
 <template>
@@ -13,7 +9,6 @@ const {userInfo} = storeToRefs(authStore)
     </div>
     <ActivitiesContainerComponent
       :showArtistActivities="true"
-      :activityId="userInfo.uid"
     />
   </div>
 </template>

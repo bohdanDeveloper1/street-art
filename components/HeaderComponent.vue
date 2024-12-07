@@ -16,10 +16,10 @@
           <li v-if="false">
             <NuxtLink to="/savedActivitiesPage" class="header-item">Saved activities</NuxtLink>
           </li>
-          <li v-if="userInfo.role === 'artist'">
+          <li v-if="userInfo.role === RoleType.Artist">
             <NuxtLink to="/admin/myActivities" class="header-item">My activities</NuxtLink>
           </li>
-          <li v-if="userInfo.role === 'artist'">
+          <li v-if="userInfo.role === RoleType.Artist">
             <NuxtLink to="/admin/addActivity" class="header-item">Add activity</NuxtLink>
           </li>
         </ul>
@@ -68,9 +68,8 @@
 import {useAuthStore} from '~/stores/authStore/useAuthStore'
 import {storeToRefs} from 'pinia'
 import { useRouter } from 'vue-router'
-import {getAuth, onAuthStateChanged} from 'firebase/auth'
+import {RoleType} from '~/types/RoleType'
 
-const auth = getAuth()
 const authStore = useAuthStore()
 const {userInfo} = storeToRefs(authStore)
 
@@ -86,23 +85,6 @@ watch(showSidebar, (value: boolean) => {
     document.body.classList.add('no-scroll');
   } else {
     document.body.classList.remove('no-scroll');
-  }
-})
-
-// authentication state observer
-onAuthStateChanged(auth, async(user) => {
-  if (user && user.emailVerified) {
-    authStore.isLoggedIn = true
-    authStore.userInfo.uid = user.uid
-    authStore.userInfo.email = user.email || ''
-
-    const userData = await authStore.getUserData(user.uid)
-    if(!userData) return
-
-    authStore.userInfo.name = userData.name
-    authStore.userInfo.role = userData.role
-  } else {
-    return
   }
 })
 

@@ -5,6 +5,7 @@ import { useNuxtApp } from '#build/imports';
 import {getAuth, signInWithEmailAndPassword, signOut} from 'firebase/auth'
 import { useAddCommentStore } from "~/stores/addComment";
 import type {IUser} from '~/stores/authStore/types/IUser'
+import {LocalStorageVariables} from '~/types/LocalStorageVariablesType'
 
 export const useAuthStore = defineStore('auth', () => {
     const auth = getAuth()
@@ -25,11 +26,9 @@ export const useAuthStore = defineStore('auth', () => {
             const user = userCredential.user
 
             if (user && user.emailVerified) {
-                // отримую роль користувача
                 const userData = await getUserData(user.uid)
                 if(!userData) {
                     loginErrorMessage.value = 'User does`t exist'
-
                     return
                 }
 
@@ -39,6 +38,8 @@ export const useAuthStore = defineStore('auth', () => {
                 userInfo.role = userData.role
                 loginErrorMessage.value = ''
                 isLoggedIn.value = true
+                localStorage.setItem(LocalStorageVariables.UserUid, user.uid)
+                localStorage.setItem(LocalStorageVariables.UserRole, userData.role)
 
                 if(addCommentStore.logInDuringAddingComment) {
                     addCommentStore.showFirebaseAuthComponent = false;
@@ -84,6 +85,8 @@ export const useAuthStore = defineStore('auth', () => {
         userInfo.role = ''
 
         await signOut(auth)
+        localStorage.removeItem(LocalStorageVariables.UserUid)
+        localStorage.removeItem(LocalStorageVariables.UserRole)
         addCommentStore.showAddCommentComponent = false
         navigateTo('/userComponent')
     }
