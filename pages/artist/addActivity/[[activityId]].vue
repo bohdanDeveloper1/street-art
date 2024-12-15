@@ -1,175 +1,204 @@
 <template>
-  <div class="_container">
-    <div v-if="!ifActivityWasAdded">
-      <div class="form-container">
-        <!-- Error alert -->
-        <div v-if="exceptionMessage !== '' ">
-          <v-alert
-              :title="exceptionTitle"
-              :text="exceptionMessage"
-              type="error"
-          ></v-alert>
-        </div>
-        <div>
-          <h2 class="form-header">Create an activity</h2>
-          <div class="flex-container">
-            <div class="left-group-container">
-              <!--activityName-->
-              <div class="form-item-container">
-                <v-text-field
-                    v-model="activityName"
-                    :counter="50"
-                    :error-messages="activityNameErrorMessage"
-                    label="Activity name"
-                    variant="solo"
-                    density="compact"
-                    @input="validateActivityName(false)"
-                    @blur="validateActivityName(true)"
-                ></v-text-field>
-              </div>
-              <!-- Categories selector  -->
-              <div class="form-item-container">
-                <v-autocomplete
-                    label="Category"
-                    v-model="activityCategory"
-                    :items="artCategories"
-                    :error-messages="activityCategoryErrorMessage"
-                    variant="solo"
-                    density="compact"
-                    @update:model-value="validateActivityCategory(false)"
-                    @blur="validateActivityCategory(true)"
-                ></v-autocomplete>
-              </div>
-              <!--   Cities selector-->
-              <div class="form-item-container">
-                <v-autocomplete
-                    label="City"
-                    v-model="activityCity"
-                    :items="citiesDataArray"
-                    :error-messages="activityCityErrorMessage"
-                    variant="solo"
-                    density="compact"
-                    @blur="onActivityCityChanged"
-                    @update:model-value="onActivityCityChanged"
-                ></v-autocomplete>
-              </div>
-              <!--   Street input -->
-              <div class="form-item-container">
-                <v-text-field
-                    v-model="activityStreet"
-                    :counter="50"
-                    :error-messages="activityStreetErrorMessage"
-                    label="Street"
-                    variant="solo"
-                    density="compact"
-                    @input="validateActivityStreet(false)"
-                    @blur="onActivityStreetChanged"
-                    @keyup.enter="onActivityStreetChanged"
-                ></v-text-field>
-              </div>
-              <!--   HouseNumber input -->
-              <div class="form-item-container">
-                <v-text-field
-                    v-model="activityHouseNumber"
-                    @input="validateActivityHouseNumber(false)"
-                    @blur="validateActivityHouseNumber(true)"
-                    @change="showCityAndStreetAndHouseOnMap"
-                    label="House number (optional)"
-                    variant="solo"
-                    density="compact"
-                ></v-text-field>
-              </div>
-            </div>
-            <!-- Map component -->
-            <div class="leafletMapContainer">
-               <LMap class="leafletMap" style="height: 100%; width: 100%" :zoom="mapZoom" :center="[mapCenterLat, mapCenterLng]">
-                 <LTileLayer
-                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                     attribution="&amp;copy; <a href=&quot;https://www.openstreetmap.org/&quot;>OpenStreetMap</a> contributors"
-                     layer-type="base"
-                     name="OpenStreetMap"
-                 />
-                 <LMarker v-if="showMarker" :lat-lng="[markerLat, markerLng]" draggable @dragend="updateMarkerLatLng" />
-               </LMap>
-            </div>
-          </div>
-          <!--  activityDateTime   -->
-          <div class="form-datepicker-container">
-            <add-activity-date-picker-component
-              @onChange="triggerDatesListValidation = true"
+  <div>
+    <PageLoaderComponent v-if="isActivityDataFetching"/>
+    <div
+      class="_container"
+      :class="{'container-hidden': isActivityDataFetching}"
+    >
+      <div v-if="!ifActivityWasAdded">
+        <div class="form-container">
+          <!-- Error alert -->
+          <div v-if="exceptionMessage !== '' ">
+            <v-alert
+                :title="exceptionTitle"
+                :text="exceptionMessage"
+                type="error"
             />
-            <p class="my-error-message" v-if="activityDatesErrorMessage">{{ activityDatesErrorMessage }}</p>
           </div>
-          <!-- activityDescription -->
-          <div class="form-item-container">
-            <v-textarea
-              label="Describe your activity"
-              v-model="activityDescription"
-              :error-messages="activityDescriptionErrorMessage"
-              variant="solo"
-              :counter="1500"
-              @input="validateActivityDescription(false)"
-              @blur="validateActivityDescription(true)"
-            >
-            </v-textarea>
-          </div>
-          <!-- activityMainPhoto -->
-          <div class="form-item-container">
-            <v-file-input
-                label="Main photo to describe activity"
-                v-model="activityMainPhotoFile"
-                :error-messages="activityMainPhotoFileErrorMessage"
-                accept="image/*"
+          <div>
+            <h2 class="form-header">{{isActivityInUpdateMode ? 'Update your activity' : 'Create an activity'}}</h2>
+            <div class="flex-container">
+              <div class="left-group-container">
+                <!--activityName-->
+                <div class="form-item-container">
+                  <v-text-field
+                      v-model="activityName"
+                      :counter="50"
+                      :error-messages="activityNameErrorMessage"
+                      label="Activity name"
+                      variant="solo"
+                      density="compact"
+                      @input="validateActivityName(false)"
+                      @blur="validateActivityName(true)"
+                  ></v-text-field>
+                </div>
+                <!-- Categories selector  -->
+                <div class="form-item-container">
+                  <v-autocomplete
+                      label="Category"
+                      v-model="activityCategory"
+                      :items="artCategories"
+                      :error-messages="activityCategoryErrorMessage"
+                      variant="solo"
+                      density="compact"
+                      @update:model-value="validateActivityCategory(false)"
+                      @blur="validateActivityCategory(true)"
+                  ></v-autocomplete>
+                </div>
+                <!--   Cities selector-->
+                <div class="form-item-container">
+                  <v-autocomplete
+                      label="City"
+                      v-model="activityCity"
+                      :items="citiesDataArray"
+                      :error-messages="activityCityErrorMessage"
+                      variant="solo"
+                      density="compact"
+                      @blur="onActivityCityChanged"
+                      @update:model-value="onActivityCityChanged"
+                  ></v-autocomplete>
+                </div>
+                <!--   Street input -->
+                <div class="form-item-container">
+                  <v-text-field
+                      v-model="activityStreet"
+                      :counter="50"
+                      :error-messages="activityStreetErrorMessage"
+                      label="Street"
+                      variant="solo"
+                      density="compact"
+                      @input="validateActivityStreet(false)"
+                      @blur="onActivityStreetChanged"
+                      @keyup.enter="onActivityStreetChanged"
+                  ></v-text-field>
+                </div>
+                <!--   HouseNumber input -->
+                <div class="form-item-container">
+                  <v-text-field
+                      v-model="activityHouseNumber"
+                      @input="validateActivityHouseNumber(false)"
+                      @blur="validateActivityHouseNumber(true)"
+                      @change="showCityAndStreetAndHouseOnMap"
+                      label="House number (optional)"
+                      variant="solo"
+                      density="compact"
+                  ></v-text-field>
+                </div>
+              </div>
+              <!-- Map component -->
+              <div class="leafletMapContainer">
+                 <LMap class="leafletMap" style="height: 100%; width: 100%" :zoom="mapZoom" :center="[mapCenterLat, mapCenterLng]">
+                   <LTileLayer
+                       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                       attribution="&amp;copy; <a href=&quot;https://www.openstreetmap.org/&quot;>OpenStreetMap</a> contributors"
+                       layer-type="base"
+                       name="OpenStreetMap"
+                   />
+                   <LMarker v-if="showMarker" :lat-lng="[markerLat, markerLng]" draggable @dragend="updateMarkerLatLng" />
+                 </LMap>
+              </div>
+            </div>
+            <!--  activityDateTime   -->
+            <div class="form-datepicker-container">
+              <DatePickerComponent
+                @onChange="triggerDatesListValidation = true"
+              />
+              <p class="my-error-message" v-if="activityDatesErrorMessage">{{ activityDatesErrorMessage }}</p>
+            </div>
+            <!-- activityDescription -->
+            <div class="form-item-container">
+              <v-textarea
+                label="Describe your activity"
+                v-model="activityDescription"
+                :error-messages="activityDescriptionErrorMessage"
                 variant="solo"
-                chips
-                density="compact"
-                show-size
-            ></v-file-input>
-          </div>
-          <!-- activityAdditionalPhotos -->
-          <div class="form-item-container">
-            <v-file-input
-                label="Additional photos (optional)"
-                v-model="activityAdditionalPhotoFiles"
-                :error-messages="activityAdditionalPhotoFilesErrorMessage"
-                accept="image/*"
-                variant="solo"
-                chips
-                multiple
-                counter
-                density="compact"
-            ></v-file-input>
-          </div>
-          <!-- submitBTN -->
-          <v-btn
+                :counter="1500"
+                @input="validateActivityDescription(false)"
+                @blur="validateActivityDescription(true)"
+              >
+              </v-textarea>
+            </div>
+            <!-- activityMainPhoto -->
+            <div class="form-item-container">
+              <v-file-input
+                  :label="isActivityInUpdateMode ? 'Change activity photo (optional)' : 'Main photo to describe activity'"
+                  v-model="activityMainPhotoFile"
+                  :error-messages="activityMainPhotoFileErrorMessage"
+                  @update:model-value="validateActivityMainPhotoFile(true)"
+                  accept="image/*"
+                  variant="solo"
+                  chips
+                  density="compact"
+                  show-size
+              ></v-file-input>
+            </div>
+            <!-- activityAdditionalPhotos -->
+            <div class="form-item-container">
+              <v-file-input
+                  :label="isActivityInUpdateMode ? 'Change additional photos (optional)' : 'Additional photos (optional)'"
+                  v-model="activityAdditionalPhotoFiles"
+                  :error-messages="activityAdditionalPhotoFilesErrorMessage"
+                  @update:model-value="validateActivityAdditionalPhotoFiles(true)"
+                  accept="image/*"
+                  variant="solo"
+                  multiple
+                  counter
+                  density="compact"
+              />
+              <div
+                  class="input-chips-container"
+                  v-if="activityAdditionalPhotoFiles && activityAdditionalPhotoFiles.length"
+              >
+                <div
+                    v-for="photo in activityAdditionalPhotoFiles"
+                    :key="photo.name"
+                    class="input-chip"
+                    @click.stop="deleteAdditionalPhoto(photo.name)"
+                >
+                  {{ photo.name }}
+                </div>
+              </div>
+            </div>
+            <!-- submitBTN -->
+            <v-btn
               class="me-4 submit-button"
-              :loading="isActivityCreating"
-              @click="addActivity"
-          >
-            create an activity
-          </v-btn>
+              :loading="isActivityUpdating"
+              @click="updateActivity"
+              v-if="isActivityInUpdateMode"
+            >
+              update an activity
+            </v-btn>
+            <v-btn
+                class="me-4 submit-button"
+                :loading="isActivityCreating"
+                @click="addActivity"
+                v-else
+            >
+              create an activity
+            </v-btn>
+          </div>
         </div>
       </div>
-    </div>
-    <div v-else class="activity-added-container">
-      <div class="activity-added-img">
-        <img class="form-added-success-img" src="/images/success_icon.png" alt="success">
+      <div v-else class="activity-added-container">
+        <div class="activity-added-img">
+          <img class="form-added-success-img" src="/images/success_icon.png" alt="success">
+        </div>
+        <h2>Success!</h2>
+        <h5>Activity was added</h5>
+        <div class="btn-container">
+          <v-btn
+            class="btn-add-one-more"
+            @click="addOneMoreActivity"
+          >
+            add one more
+          </v-btn>
+          <v-btn
+              class="link-button"
+          >
+            <NuxtLink to="/artist/myActivities" class="link-item">go to my activities</NuxtLink>
+          </v-btn>
       </div>
-      <h2>Success!</h2>
-      <h5>Activity was added</h5>
-      <div class="btn-container">
-        <v-btn
-          class="btn-add-one-more"
-          @click="addOneMoreActivity"
-        >
-          add one more
-        </v-btn>
-        <v-btn
-            class="link-button"
-        >
-          <NuxtLink to="/admin/myActivities" class="link-item">go to my activities</NuxtLink>
-        </v-btn>
-    </div>
+      </div>
     </div>
   </div>
 </template>
@@ -178,12 +207,15 @@
 import '@vuepic/vue-datepicker/dist/main.css';
 import { getStorage } from "firebase/storage";
 import {useDateListStore} from "~/stores/datesList";
-import {useActivityApiStore} from '~/stores/api/useActivityApiStore'
 import {useFirebaseFilesDataStore} from '~/stores/firebaseFilesDataStore/useFirebaseFilesDataStore'
 import {useAuthStore} from '~/stores/authStore/useAuthStore'
 import type {ICityData} from '~/types/ICityData'
 import type {IExtendedActivityData} from '~/types/IExtendedActivityData'
 import type {IDateList} from '~/types/IDateList'
+import {useRoute} from 'vue-router'
+import {useFirebaseApiStore} from '~/stores/api/useFirebaseApiStore'
+import DatePickerComponent from '~/components/addActivity/DatePickerComponent.vue'
+import PageLoaderComponent from '~/components/pageLoaderComponent.vue'
 
 const storage = getStorage()
 const authStore = useAuthStore()
@@ -213,9 +245,6 @@ const citiesDataArray = computed(() => {
 
 // datePicker variables
 const dateListStore = useDateListStore()
-onMounted(() => {
-  dateListStore.datesList.length = 0
-})
 const {datesListLength} = storeToRefs(dateListStore)
 const dateListStartEndArray = reactive<{start: number, end: number}[]>([])
 const isActivityCreating = ref(false);
@@ -339,6 +368,12 @@ function validateActivityAdditionalPhotoFiles(startValidation?: boolean) {
   }
 }
 
+function deleteAdditionalPhoto(name: string) {
+  activityAdditionalPhotoFiles.value = activityAdditionalPhotoFiles.value.filter(photo => {
+    return photo.name === name
+  })
+}
+
 const activityHouseNumber = ref<string>('')
 const triggerActivityHouseNumberValidation = ref<boolean>(false)
 const activityHouseNumberErrorMessage = ref<string>('')
@@ -351,6 +386,64 @@ function validateActivityHouseNumber(startValidation?: boolean) {
     return activityHouseNumberErrorMessage.value = ''
   }
 }
+
+const route = useRoute()
+const firebaseApiStore = useFirebaseApiStore()
+const isActivityInUpdateMode = ref<boolean>(false)
+const isActivityDataFetching = ref<boolean>(false)
+onMounted(async () => {
+  dateListStore.datesList.length = 0
+
+  if(route.params.activityId) {
+    isActivityInUpdateMode.value = true
+    isActivityDataFetching.value = true
+
+    const response: IExtendedActivityData[] = await firebaseApiStore.get<IExtendedActivityData>(
+      'activities',
+      undefined,
+      route.params.activityId as string
+    )
+    const activity: IExtendedActivityData = response[0]
+
+    // todo:
+    // await get activity photos
+
+    activityName.value = activity.name
+    activityCategory.value = activity.category
+    activityCity.value = activity.cityName
+    activityStreet.value = activity.streetName
+    activityHouseNumber.value = activity.houseNumber
+    activityDescription.value = activity.description
+    mapZoom.value = 17
+    mapCenterLat.value = activity.coordinatesLat
+    mapCenterLng.value = activity.coordinatesLng
+    showMarker.value = true
+    markerLat.value = activity.coordinatesLat
+    markerLng.value = activity.coordinatesLng
+
+    activity.activityDates.forEach(date => {
+      const dateStart: Date = new Date(date.start)
+      const dateEnd: Date = new Date(date.end)
+
+      const activityDateInfo: IDateList = {
+        dateStart: dateStart,
+        dateEnd: dateEnd,
+        timeStart: {
+          hours: dateStart.getHours(),
+          minutes: dateStart.getMinutes(),
+          seconds: 0,
+        },
+        timeEnd: {
+          hours: dateEnd.getHours(),
+          minutes: dateEnd.getMinutes(),
+          seconds: 0,
+        }
+      }
+      dateListStore.datesList.push(activityDateInfo)
+    })
+    isActivityDataFetching.value = false
+  }
+})
 
 function validateForm(): boolean {
   const formErrors: string[] = []
@@ -381,8 +474,54 @@ function validateForm(): boolean {
   return true
 }
 
+////////////////////////////////////////////////////////////      UPDATE ACTIVITY
+const isActivityUpdating = ref<boolean>(false)
+async function updateActivity() {
+  if(!validateForm()) return
+  if(!processDateList()) return
+  isActivityUpdating.value = true
+
+  try{
+    const activityCityData: {name: string, admin_name: string} = getActivityCityData()
+    // const mainPhotoRef: string[] | null = await firebaseFilesDataStore.postFiles(
+    //     'activityPhoto',
+    //     activityName.value,
+    //     activityMainPhotoFile.value
+    // )
+    // const additionalPhotoRefs: string[] | null = await firebaseFilesDataStore.postFiles(
+    //     'additionalPhoto',
+    //     activityName.value,
+    //     activityAdditionalPhotoFiles.value
+    // )
+    //   activityData: IExtendedActivityData
+    const activityData = {
+      artistUid: authStore.userInfo.uid,
+      name: activityName.value.trim(),
+      activityDates: dateListStartEndArray,
+      activityEnd: dateListStartEndArray[dateListStartEndArray.length - 1].end,
+      category: activityCategory.value,
+      // city coordinates
+      cityName: activityCityData.name,
+      cityAdmin: activityCityData.admin_name,
+      coordinatesLat: markerLat.value,
+      coordinatesLng: markerLng.value,
+      // street and house info
+      streetName: activityStreet.value.trim(),
+      houseNumber: activityHouseNumber.value ? activityHouseNumber.value : '',
+      description: activityDescription.value.trim(),
+      // mainPhotoRef: (mainPhotoRef && mainPhotoRef[0]) ? mainPhotoRef[0] : '',
+      // additionalPhotosRefs: additionalPhotoRefs ? additionalPhotoRefs : null,
+    }
+    await firebaseApiStore.patch('activities', route.params.activityId as string, activityData)
+  } catch (error) {
+    console.log(error)
+    throw error
+  } finally {
+    isActivityUpdating.value = false
+  }
+}
+
 ////////////////////////////////////////////////////////////      ADD ACTIVITY
-const activityApiStore = useActivityApiStore()
 const firebaseFilesDataStore = useFirebaseFilesDataStore()
 async function addActivity() {
   if(!validateForm()) return
@@ -391,20 +530,16 @@ async function addActivity() {
 
   try{
     const activityCityData: {name: string, admin_name: string} = getActivityCityData()
-    console.log('activityMainPhotoFile: ', activityMainPhotoFile.value)
     const mainPhotoRef: string[] | null = await firebaseFilesDataStore.postFiles(
       'activityPhoto',
       activityName.value,
       activityMainPhotoFile.value
     )
-    console.log('mainPhotoRef: ', mainPhotoRef)
-    console.log('additionalPhotoRefs: ', activityAdditionalPhotoFiles.value)
     const additionalPhotoRefs: string[] | null = await firebaseFilesDataStore.postFiles(
       'additionalPhoto',
       activityName.value,
       activityAdditionalPhotoFiles.value
     )
-    console.log('additionalPhotoRefs: ', additionalPhotoRefs)
     const activityData: IExtendedActivityData = {
       artistUid: authStore.userInfo.uid,
       name: activityName.value.trim(),
@@ -423,7 +558,7 @@ async function addActivity() {
       mainPhotoRef: (mainPhotoRef && mainPhotoRef[0]) ? mainPhotoRef[0] : '',
       additionalPhotosRefs: additionalPhotoRefs ? additionalPhotoRefs : null,
     }
-    await activityApiStore.post('activities', activityData)
+    await firebaseApiStore.post('activities', activityData)
     ifActivityWasAdded.value = true
   } catch (error) {
     console.log(error)
@@ -668,6 +803,10 @@ const updateMarkerLatLng = async (event: any) => {
 </script>
 
 <style scoped lang="scss">
+.container-hidden {
+  visibility: hidden;
+}
+
 /* form-container ------------------------------------------------------*/
 .form-container{
   margin: 24px auto 40px auto;
@@ -818,5 +957,19 @@ const updateMarkerLatLng = async (event: any) => {
 .error textarea,
 .error select{
   border: 1px solid red;
+}
+
+.input-chips-container{
+  display: flex;
+  gap: 4px;
+  position: absolute;
+  z-index: 9999;
+
+  .input-chip{
+    padding: 2px 4px;
+    background: grey;
+    border: 25px;
+    cursor: pointer;
+  }
 }
 </style>

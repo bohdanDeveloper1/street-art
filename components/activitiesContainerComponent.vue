@@ -2,7 +2,7 @@
 import type {IActivityData} from '~/types/IActivityData'
 import ActivityComponent from '~/components/ActivityComponent.vue'
 import PageLoaderComponent from '~/components/pageLoaderComponent.vue'
-import {useActivityApiStore} from '~/stores/api/useActivityApiStore'
+import {useFirebaseApiStore} from '~/stores/api/useFirebaseApiStore'
 import ActivityCardsCarousel from '~/components/ui/ActivityCardsCarousel.vue'
 import type {IExtendedActivityData} from '~/types/IExtendedActivityData'
 import {useAuthStore} from '~/stores/authStore/useAuthStore'
@@ -24,13 +24,12 @@ const props = withDefaults(defineProps<Props>(), {
   showCardsInCarousel: false,
 })
 const activitiesData = reactive<IActivityData[]>([])
-const activityApiStore = useActivityApiStore()
+const firebaseApiStore = useFirebaseApiStore()
 const isActivitiesFetching = ref<boolean>(false)
 
 const authStore = useAuthStore()
-async function makeWhereConditions() {
+async function makeWhereConditions(): Promise<[string, FirebaseFirestore.WhereFilterOp, unknown][]>  {
   const whereConditions: [string, FirebaseFirestore.WhereFilterOp, unknown][] = []
-  //let orderBy: string
 
   // get all activities where: activityEnd > new Date().getTime()
   if(!props.showArtistActivities) {
@@ -47,20 +46,20 @@ async function makeWhereConditions() {
       await router.push('/userComponent')
     }
     whereConditions.push(["artistUid", '==', userUid])
-    // todo: add: orderBy('activityEnd')
   }
 
   return whereConditions
 }
 
 async function getActivities(whereConditions?: [string, FirebaseFirestore.WhereFilterOp, unknown][]): Promise<void> {
-  let activities: IExtendedActivityData[] = await activityApiStore.get("activities", whereConditions)
+  let activities: IExtendedActivityData[] = await firebaseApiStore.get<IExtendedActivityData>("activities", whereConditions)
 
   if(activities.length) {
     if(props.cityName && props.activityId) {
       activities = activities.filter(activity => activity.id !== props.activityId)
     }
 
+    activitiesData.length = 0
     activities.forEach((activity: IActivityData) => {
       activitiesData.push({
         id: activity.id,
@@ -77,12 +76,21 @@ async function getActivities(whereConditions?: [string, FirebaseFirestore.WhereF
   }
 }
 
-onMounted(async () => {
+async function fetchActivities() {
   isActivitiesFetching.value = true
   const whereConditions = await makeWhereConditions()
   await getActivities(whereConditions)
   isActivitiesFetching.value = false
+}
+
+onMounted(async () => {
+  await fetchActivities()
 })
+
+async function deleteActivity(activityId: string): Promise<void> {
+  await firebaseApiStore.deleteDocument('activities', activityId)
+  await fetchActivities()
+}
 </script>
 
 <template>
@@ -109,6 +117,8 @@ onMounted(async () => {
             :houseNumber="activity.houseNumber"
             :category="activity.category"
             :activityDates="activity.activityDates"
+            :showArtistActivities="showArtistActivities"
+            @deleteActivity="deleteActivity"
         />
       </div>
     </div>
@@ -120,7 +130,7 @@ onMounted(async () => {
         <div class="no-activities-info">
           <h3>You have not activities yet.</h3>
         </div>
-        <NuxtLink to="/admin/addActivity">
+        <NuxtLink to="/artist/addActivity/">
           <v-btn>
             Add your first activity
           </v-btn>
@@ -138,13 +148,6 @@ onMounted(async () => {
 }
 
 .cards-container{
-  //padding: 24px 0;
-  //display: grid;
-  //justify-content: center;
-  //grid-template-columns: repeat(4, 250px);
-  //grid-column-gap: 36px;
-  //grid-row-gap: 40px;
-
   padding: 24px 0;
   display: flex;
   flex-wrap: wrap;

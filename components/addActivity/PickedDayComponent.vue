@@ -10,51 +10,40 @@ const props = defineProps<{
   timeStart: IDateList['timeStart'] | null,
   timeEnd: IDateList['timeEnd'] | null,
 }>();
-const dateListStore = useDateListStore();
-const datesList = dateListStore.datesList;
-const localTimeStart = ref();
-const localTimeEnd = ref();
-// emits
+const dateListStore = useDateListStore()
+const localTimeStart = ref(props.timeStart)
+const localTimeEnd = ref(props.timeEnd)
 const emit = defineEmits<{
   (e: 'changeLocalTimeStart', dateStart: Date, dateEnd: Date, newLocalTimeStart: IDateList['timeStart']): void;
   (e: 'changeLocalTimeEnd', dateStart: Date, dateEnd: Date, newLocalTimeStart: IDateList['timeEnd'] ): void;
   (e: 'deleteActivityDay',  dateStart: Date, dateEnd: Date, timeStart: IDateList['timeStart'] | null, timeEnd: IDateList['timeEnd'] | null ): void;
 }>()
 
-function deleteActivityDay(){
+function deleteActivityDay() {
   emit('deleteActivityDay', props.dateStart, props.dateEnd, props.timeStart, props.timeEnd);
 }
 
-function setNewEndDate(){
-  if (localTimeStart.value && localTimeEnd.value){
+function setNewEndDate() {
+  if (!localTimeStart.value || !localTimeEnd.value) return
     if(
         (localTimeStart.value.hours > localTimeEnd.value.hours) ||
         (localTimeStart.value.hours === localTimeEnd.value.hours && localTimeStart.value.minutes >= localTimeEnd.value.minutes)
     ){
       if(props.dateStart.getDate() === props.dateEnd.getDate()){
-        const index = datesList.findIndex(item => (item.dateStart === props.dateStart));
+        const index = dateListStore.datesList.findIndex(item => (item.dateStart === props.dateStart));
 
-        const dateEnd: number = datesList[index].dateEnd.getDate();
-        datesList[index].dateEnd = new Date(datesList[index].dateEnd.setDate(dateEnd + 1));
+        const dateEnd: number = dateListStore.datesList[index].dateEnd.getDate();
+        dateListStore.datesList[index].dateEnd = new Date(dateListStore.datesList[index].dateEnd.setDate(dateEnd + 1));
       }
     }else{
       if(props.dateEnd.getDate() - props.dateStart.getDate() === 1){
-        const index = datesList.findIndex(item => (item.dateStart === props.dateStart));
+        const index = dateListStore.datesList.findIndex(item => (item.dateStart === props.dateStart));
 
-        const dateEnd: number = datesList[index].dateEnd.getDate();
-        datesList[index].dateEnd = new Date(datesList[index].dateEnd.setDate(dateEnd - 1));
+        const dateEnd: number = dateListStore.datesList[index].dateEnd.getDate();
+        dateListStore.datesList[index].dateEnd = new Date(dateListStore.datesList[index].dateEnd.setDate(dateEnd - 1));
       }
     }
-  }
 }
-
-watch(() => props.timeStart, (newTimeStart) => {
-  localTimeStart.value = newTimeStart;
-});
-
-watch(() => props.timeEnd, (newTimeEnd) => {
-  localTimeEnd.value = newTimeEnd;
-});
 
 watch(localTimeStart, (newLocalTimeStart) => {
   emit('changeLocalTimeStart', props.dateStart, props.dateEnd, newLocalTimeStart)
@@ -75,13 +64,13 @@ watch(localTimeEnd, (newLocalTimeEnd) => {
           <div class="picked-day">
             {{props.dateStart.toDateString()}}
           </div>
-          <VueDatePicker placeholder="Start" v-model="localTimeStart" time-picker />
+          <VueDatePicker placeholder="Start" v-model="localTimeStart" time-picker/>
         </div>
         <div class="time-picker">
           <div class="picked-day">
             {{props.dateEnd.toDateString()}}
           </div>
-          <VueDatePicker placeholder="End" v-model="localTimeEnd" time-picker />
+          <VueDatePicker placeholder="End" v-model="localTimeEnd" time-picker/>
         </div>
       </div>
     </div>

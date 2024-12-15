@@ -23,7 +23,7 @@ useSeoMeta({
 const auth = getAuth()
 const authStore = useAuthStore()
 
-onAuthStateChanged(auth, async(user: User) => {
+onAuthStateChanged(auth, async(user) => {
   if (user && user.emailVerified) {
     authStore.isLoggedIn = true
     authStore.userInfo.uid = user.uid

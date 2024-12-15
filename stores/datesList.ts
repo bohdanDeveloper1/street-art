@@ -12,4 +12,4 @@ export const useDateListStore = defineStore('dateList', () => {
         datesList,
         datesListLength,
     }
-});
+})

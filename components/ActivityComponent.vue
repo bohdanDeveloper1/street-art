@@ -7,20 +7,28 @@ interface IDateList{
   end: string,
 }
 
+interface IIfShowArtistActivities extends IActivityData {
+  showArtistActivities?: boolean
+}
+interface Emits {
+  (e: 'deleteActivity', activityId: string): void
+}
+
 const storage = getStorage()
-const props = defineProps<IActivityData>()
+const props = defineProps<IIfShowArtistActivities>()
+const emit = defineEmits<Emits>()
 const router = useRouter()
 
-const dateNow = new Date();
+const isImgFetching = ref<boolean>(false)
 const isFavorite = ref(false);
 const activityMainPhoto = ref();
 const isAdditionalInfoHovered = ref<boolean>(false);
-// filteredDatesStartEnd дати початку та кінця активності, які > new Date().
+// filteredDatesStartEnd дати початку та кінця активності, які > Date.now()
 const filteredDatesStartEnd = computed(() => {
   const datesStartEnd = reactive<IDateList[]>([]);
 
   for(let i = 0; i < props.activityDates.length; i++) {
-    if(props.activityDates[i].end > dateNow.getTime()){
+    if(props.activityDates[i].end > Date.now()){
       const dateStart = new Date(props.activityDates[i].start);
       const dateEnd = new Date(props.activityDates[i].end);
 
@@ -57,28 +65,75 @@ async function removeCardFromFavorite(){
   isFavorite.value = false;
 }
 
-async function showActivityDetails(){
+async function showActivityDetails() {
   await router.push(`/activityDetails/${props.id}`)
 }
 
 onBeforeMount(async () => {
+  isImgFetching.value = true
   activityMainPhoto.value = await getDownloadURL(storageRef(storage, props.mainPhotoRef))
+  isImgFetching.value = false
 })
+
+const showDeleteActivityAlert = ref<boolean>(false)
+const isActivityDeleting = ref<boolean>(false)
+
+function deleteActivity() {
+  showDeleteActivityAlert.value = false
+  isActivityDeleting.value = true
+  emit('deleteActivity', props.id || '')
+  isActivityDeleting.value = false
+}
+
+async function updateActivity() {
+  await router.push({
+    path: `/artist/addActivity/${props.id}`,
+  })
+}
 </script>
 
 <template>
-  <div class="card" v-if="activityMainPhoto">
-    <img :src="activityMainPhoto" class="card-img" :alt="mainPhotoRef">
+  <v-alert
+    :title="`Are you sure, you want to delete ${props.name}?`"
+    type="error"
+    class="alert"
+    v-if="showDeleteActivityAlert"
+  >
+    <div class="alert-btn-container">
+      <v-btn
+        class="alert-btn"
+        @click="showDeleteActivityAlert = false"
+      >
+        no
+      </v-btn>
+      <v-btn
+        class="alert-btn"
+        @click="deleteActivity"
+      >
+        yes
+      </v-btn>
+    </div>
+  </v-alert>
+  <div v-if="isImgFetching">
+    <v-skeleton-loader
+        class="mx-auto border"
+        width="250"
+        height="400"
+        type="image, article"
+    />
+  </div>
+  <div class="card" v-else>
+    <img :src="activityMainPhoto" class="card-img" alt="activity photo">
     <div class="card-body activity">
       <div class="activity-category roboto-regular">{{props.category}}</div>
       <h4 class="activity-title">{{props.name}}</h4>
       <div class="activity-time">
         <div class="activity-date">{{filteredDatesStartEnd[0].start}}</div>
         <div class="info-svg-container"
-             @mouseover="isAdditionalInfoHovered = true"
-             @mouseout="isAdditionalInfoHovered = false"
-             @click="isAdditionalInfoHovered = !isAdditionalInfoHovered"
-             v-if="filteredDatesStartEnd.length > 1"
+           @mouseover="isAdditionalInfoHovered = true"
+           @mouseout="isAdditionalInfoHovered = false"
+           @click="isAdditionalInfoHovered = !isAdditionalInfoHovered"
+           v-if="filteredDatesStartEnd.length > 1"
         >
           <svg
                xmlns="http://www.w3.org/2000/svg"
@@ -90,10 +145,10 @@ onBeforeMount(async () => {
           </svg>
           <div
              :class="[
-                 'additional-info-dates-container',
-                 {'content-visible': isAdditionalInfoHovered},
-                  {'container-scrollable': filteredDatesStartEnd.length > 6}
-                 ]"
+               'additional-info-dates-container',
+               {'content-visible': isAdditionalInfoHovered},
+               {'container-scrollable': filteredDatesStartEnd.length > 6}
+             ]"
           >
             <div class="start-end-dates-info">Also at:</div>
             <div v-for="item in filteredDatesStartEnd">
@@ -110,8 +165,22 @@ onBeforeMount(async () => {
         </div>
       </div>
       <p class="activity-address roboto-regular">{{props.cityName}}, {{props.streetName}} {{props.houseNumber}}</p>
-      <!-- see details btn -->
-      <div class="activity-buttons">
+      <div class="activity-buttons" v-if="showArtistActivities">
+        <v-btn
+          color="red-darken-1"
+          :loading="isActivityDeleting"
+          @click="showDeleteActivityAlert = true"
+        >
+          delete
+        </v-btn>
+        <v-btn
+          color="black"
+          @click="updateActivity"
+        >
+          update
+        </v-btn>
+      </div>
+      <div class="activity-buttons" v-else>
         <div v-if="isFavorite">
           <button title="remove from Favorites" @click="removeCardFromFavorite">
             <img src="/images/addedToFavorite.svg" alt="addToFavorite">
@@ -131,17 +200,22 @@ onBeforeMount(async () => {
       </div>
     </div>
   </div>
-  <div v-else>
-    <v-skeleton-loader
-        class="mx-auto border"
-        width="250"
-        height="400"
-        type="image, article"
-    ></v-skeleton-loader>
-  </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
+.alert{
+  position: fixed;
+  top: 94px;
+  z-index: 9999;
+
+  .alert-btn-container{
+    margin-top: 8px;
+    display: flex;
+    justify-content: start;
+    gap: 16px;
+  }
+}
+
 .card{
   width: 250px;
   border-radius: 12px;
@@ -193,7 +267,7 @@ onBeforeMount(async () => {
   position: absolute;
   padding: 16px 12px 8px 12px;
   top: 18px;
-  left: -100px;
+  left: -200px;
   width: 400px;
   background-color: white;
   border-radius: 10px;
