@@ -1,0 +1,13 @@
+tasks with updateActivity:
+    //  1. tasks in UPDATE ACTIVITY
+    //  6. fix map bag (when set marker to another city, city do not updating)
+    //  3. зробити логіку для збереження активностей до улюблених
+
+show FirebaseAuthComponent global for app in app.vue
+
+4. wyszukiwarka z podpowiedziami jak tu:
+https://www.gildia.pl/szukaj/wydawnictwo/studio-astropsychologii
+
+// todo: solve nuxt problem
+// add favicon
+// bad words validation
