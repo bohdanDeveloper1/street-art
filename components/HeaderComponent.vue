@@ -14,7 +14,7 @@
             </NuxtLink>
           </li>
           <li v-if="false">
-            <NuxtLink to="/savedActivitiesPage" class="header-item">Saved activities</NuxtLink>
+            <NuxtLink to="/saved" class="header-item">Saved</NuxtLink>
           </li>
           <li v-if="userInfo.role === RoleType.Artist">
             <NuxtLink to="/artist/myActivities" class="header-item">My activities</NuxtLink>

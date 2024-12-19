@@ -21,6 +21,7 @@ const timeStart = ref();
 const timeEnd = ref();
 
 const route = useRoute()
+// set date start, date end from dateListStore.datesList
 watch(dateListStore.datesList, (value) => {
   if(route.params.activityId && dateListStore.datesList.length) {
     date.value = [
@@ -83,7 +84,7 @@ watch(date, (newDate) => {
   startDate.value = newDate[0];
   if(newDate[1]) {
     endDate.value = newDate[1];
-  } else if(!newDate[1] && !route.params.activityId) { // add only date and time start
+  } else if(!newDate[1] && !route.params.activityId || !dateListStore.datesList.length) { // add only date start, date end
     dateListStore.datesList.push({
       dateStart: new Date(newDate[0]),
       dateEnd: new Date(newDate[0]),
@@ -92,7 +93,7 @@ watch(date, (newDate) => {
     });
   }
 
-  if(startDate.value && endDate.value && !route.params.activityId){
+  if(startDate.value && endDate.value && !route.params.activityId || startDate.value && endDate.value && !dateListStore.datesList.length) {
     getDatesBetween(newDate[0], newDate[1]);
   }
 });

@@ -1,6 +1,3 @@
-<!-- todo:
-  3. зробити логіку для збереження активностей до улюблених
- -->
 <script setup lang="ts">
 import { doc, getDoc } from "firebase/firestore";
 import { collection, query, where, getDocs } from "firebase/firestore";
@@ -25,7 +22,7 @@ const {$firestore}: any = useNuxtApp()
 const storage = getStorage();
 const route = useRoute();
 const addCommentStore = useAddCommentStore();
-const {showFirebaseAuthComponent, showAddCommentComponent} = storeToRefs(addCommentStore);
+const {showAddCommentComponent} = storeToRefs(addCommentStore);
 const userUid = ref<string>('');
 
 const activityData = reactive<IExtendedActivityData>({
@@ -201,15 +198,6 @@ async function addActivityComment(){
   }
 }
 
-// no scroll
-watch(showFirebaseAuthComponent, (newValue) =>{
-  if(newValue === true){
-    document.documentElement.classList.add('no-scroll');
-  }else{
-    document.documentElement.classList.remove('no-scroll');
-  }
-})
-
 async function fetchActivityDetailsData() {
   isActivityDataFetching.value = true
   await getActivityData()
@@ -229,11 +217,6 @@ const isNewCommentAdded = ref<boolean>(false)
 
 <template>
   <div>
-    <div v-if="showFirebaseAuthComponent" class="auth-component-container">
-      <div class="auth-component">
-        <FirebaseAuthComponent/>
-      </div>
-    </div>
     <div class="content" v-if="!isActivityDataFetching">
       <div class="activity-title">
         <h2 class="activity-title-header">{{activityData.name}}</h2>
@@ -383,7 +366,6 @@ const isNewCommentAdded = ref<boolean>(false)
     <div v-else>
       <PageLoaderComponent/>
     </div>
-    <div v-if="showFirebaseAuthComponent" class="overlay" @click="addCommentStore.showFirebaseAuthComponent = false"/>
   </div>
 </template>
 
@@ -395,29 +377,9 @@ const isNewCommentAdded = ref<boolean>(false)
   margin-bottom: 60px;
 }
 
-.auth-component-container{
-  display: flex;
-  justify-content: center;
-}
-
-.auth-component{
-  position: fixed;
-  z-index: 1001;
-}
-
 .content{
   max-width: 1080px;
   margin: 26px auto 0;
-}
-
-.overlay {
-  position: fixed;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0,0,0,0.4);
-  z-index: 1000;
-  top: 0;
-  left: 0;
 }
 
 /* activity title  -------------------------------------------------------*/

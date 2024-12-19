@@ -11,10 +11,10 @@
      </div>
      <div class="current-component">
        <div class="log-in-component" v-if="ifLogInComponentActive">
-         <auth-log-in-component></auth-log-in-component>
+         <LogInComponent/>
        </div>
        <div class="authorization-component"  v-if="ifAuthComponentActive">
-         <auth-authorization-component></auth-authorization-component>
+         <AuthorizationComponent/>
        </div>
      </div>
    </div>
@@ -22,6 +22,9 @@
 </template>
 
 <script setup>
+import AuthorizationComponent from './AuthorizationComponent.vue'
+import LogInComponent from './LogInComponent.vue'
+
 const ifLogInComponentActive = ref(true);
 const ifAuthComponentActive = ref(false);
 

@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { getStorage, ref as storageRef, getDownloadURL  } from "firebase/storage"
+import { getStorage, ref as storageRef, getDownloadURL} from "firebase/storage"
 import type {IActivityData} from '~/types/IActivityData'
+import {useFirebaseApiStore} from '~/stores/api/useFirebaseApiStore'
+import { useAuthStore } from '~/stores/authStore/useAuthStore'
+import { useAddCommentStore } from "~/stores/addComment"
 
 interface IDateList{
   start: string,
@@ -20,10 +23,9 @@ const emit = defineEmits<Emits>()
 const router = useRouter()
 
 const isImgFetching = ref<boolean>(false)
-const isFavorite = ref(false);
 const activityMainPhoto = ref();
 const isAdditionalInfoHovered = ref<boolean>(false);
-// filteredDatesStartEnd дати початку та кінця активності, які > Date.now()
+// дати початку та кінця активності, які > Date.now()
 const filteredDatesStartEnd = computed(() => {
   const datesStartEnd = reactive<IDateList[]>([]);
 
@@ -53,23 +55,35 @@ const filteredDatesStartEnd = computed(() => {
   return datesStartEnd;
 });
 
-async function addCardToFavorite(){
-  // todo перевірити чи користувач залогований.
-  // якщо залогований то
-  isFavorite.value = true;
+const authStore = useAuthStore()
+const firebaseApiStore = useFirebaseApiStore()
+const addCommentStore = useAddCommentStore()
+
+const {savedActivityIds} = storeToRefs(authStore)
+const isFavorite = computed(() => {
+  if(savedActivityIds.value.includes(props.id as string)) return true
+  return false
+})
+
+async function saveActivity() {
+  if(authStore.userInfo.uid) {
+    await firebaseApiStore.updateDocumentArrayField('users', authStore.userInfo.uid, 'savedActivities', props.id as string)
+    savedActivityIds.value.push(props.id as string)
+  } else{
+    addCommentStore.showFirebaseAuthComponent = true
+  }
 }
 
-async function removeCardFromFavorite(){
-  // todo перевірити чи користувач залогований.
-  // якщо залогований то
-  isFavorite.value = false;
+async function removeFromSaved() {
+  await firebaseApiStore.updateDocumentArrayField('users', authStore.userInfo.uid, 'savedActivities', props.id as string, true)
+  savedActivityIds.value.splice(savedActivityIds.value.indexOf(props.id as string), 1)
 }
 
 async function showActivityDetails() {
   await router.push(`/activityDetails/${props.id}`)
 }
 
-onBeforeMount(async () => {
+onMounted(async () => {
   isImgFetching.value = true
   activityMainPhoto.value = await getDownloadURL(storageRef(storage, props.mainPhotoRef))
   isImgFetching.value = false
@@ -182,12 +196,12 @@ async function updateActivity() {
       </div>
       <div class="activity-buttons" v-else>
         <div v-if="isFavorite">
-          <button title="remove from Favorites" @click="removeCardFromFavorite">
+          <button title="remove from Favorites" @click="removeFromSaved">
             <img src="/images/addedToFavorite.svg" alt="addToFavorite">
           </button>
         </div>
         <div v-else>
-          <button title="add to Favorites" @click="addCardToFavorite">
+          <button title="add to Favorites" @click="saveActivity">
             <img src="/images/addToFavorite.svg" alt="addToFavorite">
           </button>
         </div>

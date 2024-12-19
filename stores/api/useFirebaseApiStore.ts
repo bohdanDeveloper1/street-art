@@ -1,7 +1,11 @@
 import {defineStore} from 'pinia'
 import {addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, updateDoc, where,} from 'firebase/firestore'
 import {useNuxtApp} from '#build/imports'
-import {orderBy} from '@firebase/firestore'
+import {
+    orderBy,
+    arrayUnion,
+    arrayRemove,
+} from '@firebase/firestore'
 
 export const useFirebaseApiStore = defineStore('activityApi', () => {
     const {$firestore}: any = useNuxtApp()
@@ -56,6 +60,26 @@ export const useFirebaseApiStore = defineStore('activityApi', () => {
         }
     }
 
+    // add or remove data to document array field
+    async function updateDocumentArrayField(collectionName: string, docId: string, docFieldName: string, data: string, removeData: boolean = false) {
+        try{
+            const docRef = doc($firestore, collectionName, docId)
+
+            if(removeData) {
+                await updateDoc(docRef, {
+                    [docFieldName]: arrayRemove(data)
+                })
+            } else{
+                await updateDoc(docRef, {
+                    [docFieldName]: arrayUnion(data)
+                })
+            }
+        } catch (e) {
+            console.error("Error updating document: ", e)
+            throw e
+        }
+    }
+
     async function deleteDocument(collectionName: string, docId: string): Promise<void> {
         try {
             await deleteDoc(doc($firestore, collectionName, docId))
@@ -70,5 +94,6 @@ export const useFirebaseApiStore = defineStore('activityApi', () => {
         get,
         patch,
         deleteDocument,
+        updateDocumentArrayField,
     }
 })

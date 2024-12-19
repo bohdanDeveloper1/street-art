@@ -9,7 +9,7 @@ const props = defineProps<{
   dateEnd: Date,
   timeStart: IDateList['timeStart'] | null,
   timeEnd: IDateList['timeEnd'] | null,
-}>();
+}>()
 const dateListStore = useDateListStore()
 const localTimeStart = ref(props.timeStart)
 const localTimeEnd = ref(props.timeEnd)
@@ -44,6 +44,14 @@ function setNewEndDate() {
       }
     }
 }
+
+watch(() => props.timeStart, (newTimeStart) => {
+  localTimeStart.value = newTimeStart
+})
+
+watch(() => props.timeEnd, (newTimeEnd) => {
+  localTimeEnd.value = newTimeEnd
+})
 
 watch(localTimeStart, (newLocalTimeStart) => {
   emit('changeLocalTimeStart', props.dateStart, props.dateEnd, newLocalTimeStart)

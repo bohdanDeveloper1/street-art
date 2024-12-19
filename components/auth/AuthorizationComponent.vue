@@ -43,7 +43,6 @@ const triggerPasswordValidation = ref<boolean>(false)
 function validatePassword(startValidation?: boolean) {
   if(startValidation) triggerPasswordValidation.value = true
 
-  if(triggerPasswordValidation.value) {
     passwordErrors.length = 0
 
     if(password.value.length < 8) {
@@ -65,7 +64,6 @@ function validatePassword(startValidation?: boolean) {
     if(!/[!@#$%^&*.?]/.test(password.value)) {
       passwordErrors.push(PasswordErrorType.NoSpecialCharacter)
     }
-  }
 }
 const passwordValidationMessagesMap = [
   {
@@ -98,7 +96,7 @@ async function onSubmit() {
   validateName(true)
   validatePassword(true)
 
-  if(!emailErrorMessage.value && !nameErrorMessage.value && passwordErrors.length === 0) {
+  if(!emailErrorMessage.value && !nameErrorMessage.value && !passwordErrors.length) {
     await createAccount()
   }
 }
@@ -176,7 +174,7 @@ async function addUserToDataBase(user: any) {
           <div class="form-item-container">
             <v-text-field
                 v-model="password"
-                @input="validatePassword(false)"
+                @input="validatePassword()"
                 @blur="validatePassword(true)"
                 type="password"
                 label="Password"
@@ -188,7 +186,7 @@ async function addUserToDataBase(user: any) {
                   v-for="{type, message} in passwordValidationMessagesMap"
                   :key="type"
                   class="validation-message"
-                  :class="{'error': triggerPasswordValidation && passwordErrors.includes(type), 'success': triggerPasswordValidation && !passwordErrors.includes(type)}"
+                  :class="{'error': triggerPasswordValidation && passwordErrors.includes(type), 'success': password.length && !passwordErrors.includes(type)}"
               >
 <!--                <IconComponent-->
 <!--                    :name="passwordErrors.includes(type) ? IconNameType.Dash : IconNameType.Check"-->

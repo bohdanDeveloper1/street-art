@@ -19,6 +19,7 @@ export const useAuthStore = defineStore('auth', () => {
     })
     const isLoggedIn = ref<boolean>(false)
     const loginErrorMessage = ref<string>('')
+    const savedActivityIds = reactive<string[]>([])
 
     async function logIn(email:string, password:string, ) {
         try{
@@ -38,11 +39,11 @@ export const useAuthStore = defineStore('auth', () => {
                 userInfo.role = userData.role
                 loginErrorMessage.value = ''
                 isLoggedIn.value = true
+                addCommentStore.showFirebaseAuthComponent = false
                 localStorage.setItem(LocalStorageVariables.UserUid, user.uid)
                 localStorage.setItem(LocalStorageVariables.UserRole, userData.role)
 
                 if(addCommentStore.logInDuringAddingComment) {
-                    addCommentStore.showFirebaseAuthComponent = false;
                     addCommentStore.showAddCommentComponent = true;
                 }
             }
@@ -70,6 +71,13 @@ export const useAuthStore = defineStore('auth', () => {
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
+            if(docSnap.data().savedActivities) {
+              // @ts-ignore  
+              docSnap.data().savedActivities.map(activity => {
+                savedActivityIds.push(activity)
+              })
+            }
+
             return docSnap.data()
         } else {
             console.log("User does`t exist");
@@ -83,6 +91,7 @@ export const useAuthStore = defineStore('auth', () => {
         userInfo.email = ''
         userInfo.name = ''
         userInfo.role = ''
+        savedActivityIds.length = 0
 
         await signOut(auth)
         localStorage.removeItem(LocalStorageVariables.UserUid)
@@ -95,6 +104,7 @@ export const useAuthStore = defineStore('auth', () => {
         isLoggedIn,
         loginErrorMessage,
         userInfo,
+        savedActivityIds,
         logIn,
         logOut,
         getUserData,

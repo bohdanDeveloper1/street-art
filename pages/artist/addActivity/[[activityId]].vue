@@ -118,10 +118,30 @@
               >
               </v-textarea>
             </div>
-            <!-- activityMainPhoto -->
+            <!-- main photo -->
+            <div
+              class="form-item-container"
+              v-if="activityMainPhotoFile"
+            >
+              <v-img
+                  :width="300"
+                  aspect-ratio="16/9"
+                  :src="mainPhotoFileUrl"
+                  cover
+                  class="activity-photo"
+              >
+                <SvgComponent
+                    svg-name="M7.616 20q-.691 0-1.153-.462T6 18.384V6H5V5h4v-.77h6V5h4v1h-1v12.385q0 .69-.462 1.153T16.384 20zm2.192-3h1V8h-1zm3.384 0h1V8h-1z"
+                    :width="32"
+                    :height="32"
+                    pathFill="red"
+                    @click="activityMainPhotoFile = null"
+                />
+              </v-img>
+            </div>
             <div class="form-item-container">
               <v-file-input
-                  :label="isActivityInUpdateMode ? 'Change activity photo (optional)' : 'Main photo to describe activity'"
+                  :label="mainPhotoLabel"
                   v-model="activityMainPhotoFile"
                   :error-messages="activityMainPhotoFileErrorMessage"
                   @update:model-value="validateActivityMainPhotoFile(true)"
@@ -129,13 +149,45 @@
                   variant="solo"
                   chips
                   density="compact"
-                  show-size
-              ></v-file-input>
+              >
+                <template v-slot:selection="{ fileNames }">
+                  <template v-for="fileName in fileNames" :key="fileName">
+                    <v-chip
+                      size="small"
+                      label
+                    >
+                      {{ fileName || 'photo' }}
+                    </v-chip>
+                  </template>
+                </template>
+              </v-file-input>
             </div>
-            <!-- activityAdditionalPhotos -->
+            <!-- additional photos -->
+            <div
+                class="form-item-container additional-photos-container"
+                v-if="activityAdditionalPhotoFiles && activityAdditionalPhotoFiles.length"
+            >
+              <v-img
+                v-for="(url, index) in activityAdditionalPhotoFiles"
+                :key="url"
+                :width="300"
+                aspect-ratio="16/9"
+                :src="additionalPhotoFileUrls[index]"
+                cover
+                class="activity-photo"
+              >
+                <SvgComponent
+                    svg-name="M7.616 20q-.691 0-1.153-.462T6 18.384V6H5V5h4v-.77h6V5h4v1h-1v12.385q0 .69-.462 1.153T16.384 20zm2.192-3h1V8h-1zm3.384 0h1V8h-1z"
+                    :width="32"
+                    :height="32"
+                    pathFill="red"
+                    @click="deleteAdditionalPhoto(index)"
+                />
+              </v-img>
+            </div>
             <div class="form-item-container">
               <v-file-input
-                  :label="isActivityInUpdateMode ? 'Change additional photos (optional)' : 'Additional photos (optional)'"
+                  :label="additionalPhotosLabel"
                   v-model="activityAdditionalPhotoFiles"
                   :error-messages="activityAdditionalPhotoFilesErrorMessage"
                   @update:model-value="validateActivityAdditionalPhotoFiles(true)"
@@ -144,22 +196,21 @@
                   multiple
                   counter
                   density="compact"
-              />
-              <div
-                  class="input-chips-container"
-                  v-if="activityAdditionalPhotoFiles && activityAdditionalPhotoFiles.length"
+                  chips
               >
-                <div
-                    v-for="photo in activityAdditionalPhotoFiles"
-                    :key="photo.name"
-                    class="input-chip"
-                    @click.stop="deleteAdditionalPhoto(photo.name)"
-                >
-                  {{ photo.name }}
-                </div>
-              </div>
+                <template v-slot:selection="{ fileNames }">
+                    <template v-for="fileName in fileNames" :key="fileName">
+                      <v-chip
+                        size="small"
+                        label
+                      >
+                        {{ fileName || 'photo' }}
+                      </v-chip>
+                    </template>
+                </template>
+              </v-file-input>
             </div>
-            <!-- submitBTN -->
+            <!-- update BTN -->
             <v-btn
               class="me-4 submit-button"
               :loading="isActivityUpdating"
@@ -204,9 +255,9 @@
 </template>
 
 <script setup lang="ts">
-import '@vuepic/vue-datepicker/dist/main.css';
-import { getStorage } from "firebase/storage";
-import {useDateListStore} from "~/stores/datesList";
+import '@vuepic/vue-datepicker/dist/main.css'
+import {getDownloadURL, getStorage, ref as storageRef} from 'firebase/storage'
+import {useDateListStore} from '~/stores/datesList'
 import {useFirebaseFilesDataStore} from '~/stores/firebaseFilesDataStore/useFirebaseFilesDataStore'
 import {useAuthStore} from '~/stores/authStore/useAuthStore'
 import type {ICityData} from '~/types/ICityData'
@@ -216,6 +267,7 @@ import {useRoute} from 'vue-router'
 import {useFirebaseApiStore} from '~/stores/api/useFirebaseApiStore'
 import DatePickerComponent from '~/components/addActivity/DatePickerComponent.vue'
 import PageLoaderComponent from '~/components/pageLoaderComponent.vue'
+import SvgComponent from '~/components/ui/SvgComponent.vue'
 
 const storage = getStorage()
 const authStore = useAuthStore()
@@ -368,10 +420,8 @@ function validateActivityAdditionalPhotoFiles(startValidation?: boolean) {
   }
 }
 
-function deleteAdditionalPhoto(name: string) {
-  activityAdditionalPhotoFiles.value = activityAdditionalPhotoFiles.value.filter(photo => {
-    return photo.name === name
-  })
+function deleteAdditionalPhoto(index: number) {
+  activityAdditionalPhotoFiles.value.splice(index, 1)
 }
 
 const activityHouseNumber = ref<string>('')
@@ -391,6 +441,53 @@ const route = useRoute()
 const firebaseApiStore = useFirebaseApiStore()
 const isActivityInUpdateMode = ref<boolean>(false)
 const isActivityDataFetching = ref<boolean>(false)
+
+const mainPhotoLabel = computed(() => {
+  if(!isActivityInUpdateMode.value) return 'Main activity photo'
+  else if(isActivityInUpdateMode.value && isActivityDataFetching.value) return ''
+
+  return 'Select new activity photo'
+})
+
+const mainPhotoFileUrl = computed(() => {
+  if(!activityMainPhotoFile.value) return
+  if(typeof activityMainPhotoFile.value === 'string') return activityMainPhotoFile.value
+
+  return URL.createObjectURL(activityMainPhotoFile.value)
+})
+
+const additionalPhotosLabel = computed(() => {
+  if(!isActivityInUpdateMode.value) return 'Additional photos (max 12, optional)'
+  else if(isActivityInUpdateMode.value && isActivityDataFetching.value) return ''
+
+  return 'Select new additional photos'
+})
+
+const additionalPhotoFileUrls = computed(() => {
+  if(!activityAdditionalPhotoFiles.value.length) return
+  // @ts-ignore
+  return activityAdditionalPhotoFiles.value.map(photo => {
+    if(typeof photo === 'string') return photo
+    return URL.createObjectURL(photo)
+  })
+})
+
+let activityDataBeforeUpdate: IExtendedActivityData = {
+  artistUid: '',
+  additionalPhotosRefs: null,
+  coordinatesLat: 0,
+  coordinatesLng: 0,
+  description: '',
+  activityEnd: 0,
+  mainPhotoRef: '',
+  name: '',
+  cityAdmin: '',
+  cityName: '',
+  streetName: '',
+  houseNumber: '',
+  category: '',
+  activityDates: []
+}
 onMounted(async () => {
   dateListStore.datesList.length = 0
 
@@ -403,25 +500,33 @@ onMounted(async () => {
       undefined,
       route.params.activityId as string
     )
-    const activity: IExtendedActivityData = response[0]
+    activityDataBeforeUpdate = response[0]
 
-    // todo:
-    // await get activity photos
+    activityMainPhotoFile.value = await getDownloadURL(storageRef(storage, activityDataBeforeUpdate.mainPhotoRef))
+    activityDataBeforeUpdate.mainPhotoRef = activityMainPhotoFile.value
+    if (activityDataBeforeUpdate.additionalPhotosRefs) {
+      const downloadPromises = activityDataBeforeUpdate.additionalPhotosRefs.map(photoRef =>
+          getDownloadURL(storageRef(storage, photoRef))
+      )
 
-    activityName.value = activity.name
-    activityCategory.value = activity.category
-    activityCity.value = activity.cityName
-    activityStreet.value = activity.streetName
-    activityHouseNumber.value = activity.houseNumber
-    activityDescription.value = activity.description
+      const additionalPhotoUrls = await Promise.all(downloadPromises)
+      activityAdditionalPhotoFiles.value = [...additionalPhotoUrls]
+      activityDataBeforeUpdate.additionalPhotosRefs = [...additionalPhotoUrls]
+    }
+    activityName.value = activityDataBeforeUpdate.name
+    activityCategory.value = activityDataBeforeUpdate.category
+    activityCity.value = activityDataBeforeUpdate.cityName
+    activityStreet.value = activityDataBeforeUpdate.streetName
+    activityHouseNumber.value = activityDataBeforeUpdate.houseNumber
+    activityDescription.value = activityDataBeforeUpdate.description
     mapZoom.value = 17
-    mapCenterLat.value = activity.coordinatesLat
-    mapCenterLng.value = activity.coordinatesLng
+    mapCenterLat.value = activityDataBeforeUpdate.coordinatesLat
+    mapCenterLng.value = activityDataBeforeUpdate.coordinatesLng
     showMarker.value = true
-    markerLat.value = activity.coordinatesLat
-    markerLng.value = activity.coordinatesLng
+    markerLat.value = activityDataBeforeUpdate.coordinatesLat
+    markerLng.value = activityDataBeforeUpdate.coordinatesLng
 
-    activity.activityDates.forEach(date => {
+    activityDataBeforeUpdate.activityDates.forEach(date => {
       const dateStart: Date = new Date(date.start)
       const dateEnd: Date = new Date(date.end)
 
@@ -441,6 +546,7 @@ onMounted(async () => {
       }
       dateListStore.datesList.push(activityDateInfo)
     })
+    
     isActivityDataFetching.value = false
   }
 })
@@ -475,6 +581,9 @@ function validateForm(): boolean {
 }
 
 ////////////////////////////////////////////////////////////      UPDATE ACTIVITY
+const firebaseFilesDataStore = useFirebaseFilesDataStore()
+const router = useRouter()
+
 const isActivityUpdating = ref<boolean>(false)
 async function updateActivity() {
   if(!validateForm()) return
@@ -482,37 +591,59 @@ async function updateActivity() {
   isActivityUpdating.value = true
 
   try{
-    const activityCityData: {name: string, admin_name: string} = getActivityCityData()
-    // const mainPhotoRef: string[] | null = await firebaseFilesDataStore.postFiles(
-    //     'activityPhoto',
-    //     activityName.value,
-    //     activityMainPhotoFile.value
-    // )
-    // const additionalPhotoRefs: string[] | null = await firebaseFilesDataStore.postFiles(
-    //     'additionalPhoto',
-    //     activityName.value,
-    //     activityAdditionalPhotoFiles.value
-    // )
-    //   activityData: IExtendedActivityData
-    const activityData = {
-      artistUid: authStore.userInfo.uid,
+    const activityCityData: {name: string, admin_name: string} = getActivityCityData(activityCity.value)
+
+    let mainPhotoRef: string = ''
+    let additionalPhotoRefs: string[] = []
+    if(activityMainPhotoFile.value !== activityDataBeforeUpdate.mainPhotoRef) {
+      const response: string[] = await firebaseFilesDataStore.postFiles(
+          'activityPhoto',
+          activityName.value,
+          activityMainPhotoFile.value
+      )
+      mainPhotoRef = response[0]
+    }
+    for(let i = 0; i < activityAdditionalPhotoFiles.value.length; i++) {
+      if(activityDataBeforeUpdate.additionalPhotosRefs && activityAdditionalPhotoFiles.value[i] !== activityDataBeforeUpdate.additionalPhotosRefs[i]) {
+        if(activityAdditionalPhotoFiles.value[i]) {
+          const response: string[] = await firebaseFilesDataStore.postFiles(
+            'additionalPhoto',
+            activityName.value,
+            activityAdditionalPhotoFiles.value[i]
+          )
+
+          additionalPhotoRefs.push(response[0])
+        }
+      }
+    }
+
+    // todo: check if data changed from activityDataBeforeUpdate, if changed add changes to mail, set changed to activityData object
+    let activityData = {
       name: activityName.value.trim(),
       activityDates: dateListStartEndArray,
       activityEnd: dateListStartEndArray[dateListStartEndArray.length - 1].end,
       category: activityCategory.value,
       // city coordinates
       cityName: activityCityData.name,
-      cityAdmin: activityCityData.admin_name,
       coordinatesLat: markerLat.value,
       coordinatesLng: markerLng.value,
       // street and house info
       streetName: activityStreet.value.trim(),
       houseNumber: activityHouseNumber.value ? activityHouseNumber.value : '',
       description: activityDescription.value.trim(),
-      // mainPhotoRef: (mainPhotoRef && mainPhotoRef[0]) ? mainPhotoRef[0] : '',
-      // additionalPhotosRefs: additionalPhotoRefs ? additionalPhotoRefs : null,
     }
+
+    if(mainPhotoRef) {
+      Object.assign(activityData, {mainPhotoRef: mainPhotoRef})
+    }
+
+    if(additionalPhotoRefs.length) {
+      Object.assign(activityData, {additionalPhotosRefs: additionalPhotoRefs})
+    }
+
     await firebaseApiStore.patch('activities', route.params.activityId as string, activityData)
+     // send mail, that activity updated
+    await router.push(`/artist/myActivities/${activityName.value}`)
   } catch (error) {
     console.log(error)
     throw error
@@ -522,20 +653,19 @@ async function updateActivity() {
 }
 
 ////////////////////////////////////////////////////////////      ADD ACTIVITY
-const firebaseFilesDataStore = useFirebaseFilesDataStore()
 async function addActivity() {
   if(!validateForm()) return
   if(!processDateList()) return
   isActivityCreating.value = true
 
   try{
-    const activityCityData: {name: string, admin_name: string} = getActivityCityData()
-    const mainPhotoRef: string[] | null = await firebaseFilesDataStore.postFiles(
+    const activityCityData: {name: string, admin_name: string} = getActivityCityData(activityCity.value)
+    const mainPhotoRef: string[] = await firebaseFilesDataStore.postFiles(
       'activityPhoto',
       activityName.value,
       activityMainPhotoFile.value
     )
-    const additionalPhotoRefs: string[] | null = await firebaseFilesDataStore.postFiles(
+    const additionalPhotoRefs: string[] = await firebaseFilesDataStore.postFiles(
       'additionalPhoto',
       activityName.value,
       activityAdditionalPhotoFiles.value
@@ -555,8 +685,8 @@ async function addActivity() {
       streetName: activityStreet.value.trim(),
       houseNumber: activityHouseNumber.value ? activityHouseNumber.value : '',
       description: activityDescription.value.trim(),
-      mainPhotoRef: (mainPhotoRef && mainPhotoRef[0]) ? mainPhotoRef[0] : '',
-      additionalPhotosRefs: additionalPhotoRefs ? additionalPhotoRefs : null,
+      mainPhotoRef: mainPhotoRef[0],
+      additionalPhotosRefs: additionalPhotoRefs.length ? additionalPhotoRefs : null,
     }
     await firebaseApiStore.post('activities', activityData)
     ifActivityWasAdded.value = true
@@ -647,8 +777,7 @@ async function getArtCategoriesList(): Promise<{name: string}[]> {
   }
 }
 
-function getActivityCityData(): {name: string, admin_name: string} {
-  const cityData = activityCity.value
+function getActivityCityData(cityData: string): {name: string, admin_name: string} {
   const parts = cityData.split(", ")
 
   const cityName = parts[0]
@@ -665,17 +794,14 @@ function scrollToTop() {
   document.body.scrollTop = 0 // For older browsers
 }
 
-// todo: add to storage
+
 async function showCityOnMap() {
   try {
     const cityData = activityCity.value;
-    // Розділення рядка за допомогою коми та пробілу
     const [city, district] = cityData.split(", ");
-    // запит до API для отримання координат міста
     const response  = await fetch(`https://geocode.maps.co/search?q=${city}+${district}+Poland&api_key=659450539ff1f762862410sea796255`);
     const data = await response.json();
 
-    // Якщо результати є, беремо перший результат
     if (data.length > 0) {
       const activityCoordinates = data[0];
 
@@ -686,22 +812,18 @@ async function showCityOnMap() {
       activityHouseNumber.value = '';
     }
   } catch (error) {
-    // Обробка помилок, наприклад, у випадку невдалих запитів до API
     console.log('Error during fetching data for mapCenter from geocode.maps API:', error);
   }
 }
 
-// todo: add to storage
 async function showCityAndStreetOnMap() {
-  if(activityCity.value){
+  if(activityCity.value) {
     try {
       const cityData = activityCity.value;
       const [city, district] = cityData.split(", ");
-      // запит до API для отримання координат міста та вулиці
       const response  = await fetch(`https://geocode.maps.co/search?q=${activityStreet.value.trim()}+${city}+${district}+Poland&api_key=659450539ff1f762862410sea796255`);
       const data = await response.json();
 
-      // Якщо результати є, беремо перший результат
       if (data.length) {
         const activityCoordinates = data[0];
 
@@ -715,38 +837,32 @@ async function showCityAndStreetOnMap() {
         activityHouseNumber.value = '';
         exceptionTitle.value = '';
         exceptionMessage.value = '';
-      }else{ // якщо не знайдено координати
+      } else {
         exceptionTitle.value = `No such street in ${activityCity.value}`;
         exceptionMessage.value = `Please enter valid street name.`;
         scrollToTop();
       }
     } catch (error) {
-      // Обробка помилок, наприклад, у випадку невдалих запитів до API
       console.log('Error during fetching data for mapCenter from geocode.maps API:', error);
-      exceptionTitle.value = `No such street in ${activityCity.value}`;
-      exceptionMessage.value = `Please enter valid street name.`;
       scrollToTop();
     }
-  }else{ // якщо не обрано місто
-    activityCity.value = '';
+  }else {
     activityStreet.value = '';
+    activityHouseNumber.value = '';
     exceptionTitle.value = `Unselected city`;
     exceptionMessage.value = 'Select city, then input street name';
     scrollToTop();
   }
 }
 
-// todo: add to storage
-async function showCityAndStreetAndHouseOnMap(){
-  if(activityCity.value !== undefined && activityCity.value !== '' && activityStreet.value !== undefined && activityStreet.value !== ''){
+async function showCityAndStreetAndHouseOnMap() {
+  if(activityCity.value && activityStreet.value) {
     try {
       const cityData = activityCity.value;
       const [city, district] = cityData.split(", ");
-      // запит до API для отримання координат міста та вулиці
       const response  = await fetch(`https://geocode.maps.co/search?street=${activityStreet.value.trim()}+${activityHouseNumber.value.trim()}&city=${city}&country=Poland&api_key=659450539ff1f762862410sea796255`);
       const data = await response.json();
 
-      // Якщо результати є, беремо перший результат
       if (data.length > 0) {
         const activityCoordinates = data[0];
 
@@ -765,15 +881,10 @@ async function showCityAndStreetAndHouseOnMap(){
         scrollToTop();
       }
     } catch (error) {
-      // Обробка помилок, наприклад, у випадку невдалих запитів до API
       console.log('Error during fetching data for mapCenter from geocode.maps API:', error);
-      exceptionTitle.value = `No such house number in ${activityCity.value}, ${activityStreet.value}`;
-      exceptionMessage.value = 'Please enter valid house number';
       scrollToTop();
     }
   }else{
-    activityCity.value = '';
-    activityStreet.value = '';
     activityHouseNumber.value = '';
     exceptionTitle.value = 'Unselected city or street';
     exceptionMessage.value = 'Please select city and street, then enter valid house number';
@@ -781,19 +892,27 @@ async function showCityAndStreetAndHouseOnMap(){
   }
 }
 
-// todo: add to storage
+// todo:
+// user can select any city
 async function updateDataAfterMarkerDragged(lat: number, lon: number) {
   try {
-    const response  = await fetch(`https://geocode.maps.co/reverse?lat=${lat.toString()}&lon=${lon.toString()}&api_key=659450539ff1f762862410sea796255`);
-    const data = await response.json();
-    activityStreet.value = data.address.road;
-    activityHouseNumber.value = data.address.house_number ? data.address.house_number : "";
+    const response  = await fetch(`https://geocode.maps.co/reverse?lat=${lat.toString()}&lon=${lon.toString()}&api_key=659450539ff1f762862410sea796255`)
+    const data = await response.json()
+
+    for(let i = 0; i < citiesDataArray.value.length; i++) {
+      const {name} = getActivityCityData(citiesDataArray.value[i])
+      if(name === data.address.city || name === data.address.town || name === data.address.village) {
+        activityCity.value = citiesDataArray.value[i]
+        activityStreet.value = data.address.road
+        activityHouseNumber.value = data.address.house_number ? data.address.house_number : ""
+        break
+      }
+    }
   } catch (error) {
     console.log('Error during dragging the marker:', error);
   }
 }
 
-// todo: add to storage
 const updateMarkerLatLng = async (event: any) => {
   const updatedMarkerCoordinates: {lat: number, lng: number} = event.target.getLatLng()
   markerLat.value = updatedMarkerCoordinates.lat;
@@ -959,17 +1078,30 @@ const updateMarkerLatLng = async (event: any) => {
   border: 1px solid red;
 }
 
-.input-chips-container{
+.additional-photos-container{
   display: flex;
-  gap: 4px;
-  position: absolute;
-  z-index: 9999;
+  flex-wrap: wrap;
+  gap: 12px;
+}
 
-  .input-chip{
-    padding: 2px 4px;
-    background: grey;
-    border: 25px;
+.activity-photo{
+  position: relative;
+  border-radius: 12px;
+
+  svg{
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    visibility: hidden;
+  }
+
+  &:hover{
+    opacity: 0.8;
     cursor: pointer;
+
+    svg{
+      visibility: visible;
+    }
   }
 }
 </style>

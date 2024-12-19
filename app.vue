@@ -1,15 +1,9 @@
-<template>
-  <NuxtLayout>
-    <div class="wrapper">
-      <HeaderComponent></HeaderComponent>
-      <NuxtPage/>
-    </div>
-  </NuxtLayout>
-</template>
-
 <script setup lang="ts">
 import {getAuth, onAuthStateChanged, type User} from 'firebase/auth'
 import {useAuthStore} from '~/stores/authStore/useAuthStore'
+import { useAddCommentStore } from "~/stores/addComment"
+import FirebaseAuthComponent from './components/auth/FirebaseAuthComponent.vue'
+
 
 useSeoMeta({
   title: 'Street art',
@@ -36,4 +30,47 @@ onAuthStateChanged(auth, async(user) => {
     authStore.userInfo.role = userData.role
   }
 })
+
+const addCommentStore = useAddCommentStore()
+const {showFirebaseAuthComponent} = storeToRefs(addCommentStore)
+watch(showFirebaseAuthComponent, (newValue) => {
+  if(newValue){
+    document.documentElement.classList.add('no-scroll');
+  }else{
+    document.documentElement.classList.remove('no-scroll');
+  }
+})
 </script>
+
+<template>
+  <NuxtLayout>
+    <div class="wrapper">
+      <HeaderComponent></HeaderComponent>
+      <NuxtPage/>
+      <div v-if="showFirebaseAuthComponent" class="auth-component-container">
+        <FirebaseAuthComponent/>
+      </div>
+      <div v-if="showFirebaseAuthComponent" class="overlay" @click="addCommentStore.showFirebaseAuthComponent = false"/>  
+    </div>
+  </NuxtLayout>
+</template>
+
+<style lang="scss">
+.auth-component-container{
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -80%);
+  z-index: 1001;
+}
+
+.overlay {
+  position: fixed;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0,0,0,0.4);
+  z-index: 1000;
+  top: 0;
+  left: 0;
+}
+</style>
